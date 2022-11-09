@@ -20,6 +20,7 @@ import com.iconloop.score.test.Account;
 import com.iconloop.score.test.Score;
 import com.iconloop.score.test.ServiceManager;
 import com.iconloop.score.test.TestBase;
+import io.havah.contract.HSP20BasicToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,7 +59,7 @@ class SampleCrowdsaleTest extends TestBase {
     @BeforeEach
     public void setup() throws Exception {
         // deploy token and crowdsale scores
-        tokenScore = sm.deploy(owner, IRC2BasicToken.class,
+        tokenScore = sm.deploy(owner, HSP20BasicToken.class,
                 name, symbol, decimals, initialSupply);
         crowdsaleScore = sm.deploy(owner, SampleCrowdsale.class,
                 fundingGoalInICX, tokenScore.getAddress(), durationInBlocks);

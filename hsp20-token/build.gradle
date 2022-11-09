@@ -1,0 +1,43 @@
+version = '0.0.1'
+
+dependencies {
+    compileOnly 'foundation.icon:javaee-api:0.9.2'
+    implementation 'io.havah:havah-tokens:0.0.4'
+
+    testImplementation 'foundation.icon:javaee-unittest:0.9.7'
+    testImplementation 'org.mockito:mockito-core:4.8.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
+}
+
+optimizedJar {
+    mainClassName = 'io.havah.contract.HSP20BasicToken'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+deployJar {
+    endpoints {
+        local {
+            uri = 'http://localhost:9082/api/v3'
+            nid = 0x3
+        }
+        vega {
+            uri = 'https://ctz.vega.havah.io/api/v3/'
+            nid = 0x101
+        }
+    }
+    keystore = rootProject.hasProperty('keystoreName') ? "$keystoreName" : ''
+    password = rootProject.hasProperty('keystorePass') ? "$keystorePass" : ''
+    parameters {
+        arg('_name', 'MyHSP20Token')
+        arg('_symbol', 'MIT')
+        arg('_decimals', '0x12')
+        arg('_initialSupply', '0x3e8')
+    }
+}
+
+test {
+    useJUnitPlatform()
+}

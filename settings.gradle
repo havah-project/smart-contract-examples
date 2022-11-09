@@ -1,9 +1,9 @@
-rootProject.name = 'java-score-examples'
+rootProject.name = 'contract-examples'
 include (
     'hello-world',
-    'irc2-token',
-    'irc3-token',
-    'irc31-token',
+    'hsp20-token',
+    'hsp721-token',
+    'hsp1155-token',
     'multisig-wallet',
     'sample-crowdsale',
     'sample-token',

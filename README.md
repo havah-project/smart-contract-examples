@@ -1,6 +1,6 @@
-# Java SCORE Examples
+# Smart Contract Examples
 
-This repository contains SCORE (Smart Contract for ICON) examples written in Java.
+This repository contains Smart Contract examples written in Java.
 
 ## Requirements
 
@@ -44,7 +44,7 @@ The output jar will be located at `./hello-world/build/libs/hello-world-0.1.0-op
 
 #### Using `goloop` CLI command
 
-Now you can deploy the optimized jar to ICON networks that support the Java SCORE execution environment.
+Now you can deploy the optimized jar to ICON networks that support the Java Smart Contract execution environment.
 Assuming you are running a local network that is listening on port 9082 for incoming requests,
 you can create a deploy transaction with the optimized jar and deploy it to the local network as follows.
 
@@ -56,8 +56,6 @@ $ goloop rpc sendtx deploy ./hello-world/build/libs/hello-world-0.1.0-optimized.
     --content_type application/java \
     --param name=Alice
 ```
-
-**[Note]** The content type should be `application/java` instead of `application/zip` to differentiate it with the Python SCORE deployment.
 
 #### Using `deployJar` extension
 
@@ -107,7 +105,7 @@ deployJar {
 
 ### 4. Verify the execution
 
-Check the deployed SCORE address first using the `txresult` command.
+Check the deployed Smart Contract address first using the `txresult` command.
 ```
 $ goloop rpc txresult <tx_hash> --uri http://localhost:9082/api/v3
 {
@@ -130,16 +128,14 @@ one is for unit testing and the other is for integration testing.
 
 ### Unit testing
 
-~~`testsvc` subproject can be used for the unit testing,
-and it provides a SCORE execution emulation layer can be integrated with the JUnit 5 and Mockito frameworks.~~
 Now [`javaee-unittest`](https://github.com/icon-project/javaee-unittest) artifact is used to perform the unit testing.
 
 Here are the sample unit test cases.
   - [HelloWorld](hello-world/src/test/java/com/iconloop/score/example/AppTest.java)
   - [MultisigWallet](multisig-wallet/src/test/java/com/iconloop/score/example/MultiSigWalletTest.java)
   - [Crowdsale](sample-crowdsale/src/test/java/com/iconloop/score/example/SampleCrowdsaleTest.java)
-  - [IRC3Token (NFT)](irc3-token/src/test/java/com/iconloop/score/example/IRC3BasicTest.java)
-  - [IRC2BurnableToken](irc2-token/src/test/java/com/iconloop/score/example/IRC2BurnableTest.java)
+  - [HSP20BurnableToken](hsp20-token/src/test/java/io/havah/contract/example/HSP20BurnableTest.java)
+  - [HSP721Token (NFT)](hsp721-token/src/test/java/io/havah/contract/example/HSP721BasicTest.java)
   - [SampleToken](sample-token/src/test/java/com/iconloop/score/example/SampleTokenTest.java)
 
 ### Integration testing
@@ -150,12 +146,12 @@ It uses the [ICON SDK for Java](https://github.com/icon-project/icon-sdk-java) t
 The [default configuration](testinteg/conf/env.props) is for [gochain-local](https://github.com/icon-project/gochain-local) network.
 If you want to change this configuration, either modify the configuration file directly
 or set the proper system property (`env.props`) when you run the integration testing
-(see [example](https://github.com/icon-project/java-score-examples/blob/14c4df50b146c12c27a040410411271e87efa94a/multisig-wallet/build.gradle#L69)).
+(see [example](https://github.com/havah-project/smart-contract-examples/blob/14c4df50b146c12c27a040410411271e87efa94a/multisig-wallet/build.gradle#L69)).
 
 Here are the sample integration test cases.
   - [MultisigWallet](multisig-wallet/src/intTest/java/foundation/icon/test/cases/MultiSigWalletTest.java)
   - [Crowdsale](sample-crowdsale/src/intTest/java/foundation/icon/test/cases/CrowdsaleTest.java)
-  - [IRC3Token (NFT)](irc3-token/src/intTest/java/foundation/icon/test/cases/IRC3TokenTest.java)
+  - [HSP721Token (NFT)](hsp721-token/src/intTest/java/io/havah/test/cases/HSP721TokenTest.java)
 
 Use `integrationTest` task to run the integration testing.
 Here is the example of invoking the MultisigWallet integration testing.
@@ -163,27 +159,25 @@ Here is the example of invoking the MultisigWallet integration testing.
 $ ./gradlew multisig-wallet:integrationTest
 ```
 
-## Java SCORE Structure
+## Java Smart Contract Structure
 
 
-### Comparison to Python SCORE
-
-| Name               | Python SCORE                 | Java SCORE                  |
-|--------------------|------------------------------|-----------------------------|
-| External decorator | `@external`                  | `@External`                 |
-| - (readonly)       | `@external(readonly=True)`   | `@External(readonly=true)`  |
-| Payable decorator  | `@payable`                   | `@Payable`                  |
-| Eventlog decorator | `@eventlog`                  | `@EventLog`                 |
-| - (indexed)        | `@eventlog(indexed=1)`       | `@EventLog(indexed=1)`      |
-| fallback signature | `def fallback`               | `void fallback()`           |
-| SCORE initialize   | override `on_install` method | define a public constructor |
-| Default parameters | native language support      | `@Optional`                 |
+| Name                      | Java Smart Contract         |
+|---------------------------|-----------------------------|
+| External decorator        | `@External`                 |
+| - (readonly)              | `@External(readonly=true)`  |
+| Payable decorator         | `@Payable`                  |
+| Eventlog decorator        | `@EventLog`                 |
+| - (indexed)               | `@EventLog(indexed=1)`      |
+| fallback signature        | `void fallback()`           |
+| Smart Contract initialize | define a public constructor |
+| Default parameters        | `@Optional`                 |
 
 **[NOTE]** All external Java methods must have a `public` modifier, and should be instance methods.
 
-### How to invoke a external method of another SCORE
+### How to invoke a external method of another Smart Contract
 
-One SCORE can invoke an external method of another SCORE using the following APIs.
+One Smart Contract can invoke an external method of another Smart Contract using the following APIs.
 
 ```java
 // [package score.Context]
@@ -202,12 +196,12 @@ if (_to.isContract()) {
 
 ## References
 
-* [Java SCORE Overview](https://docs.google.com/presentation/d/1S24vCTcPJ5GOGfPu1sApJLwyOTTdgYEf/export/pdf)
-* [SCORE API document](https://www.javadoc.io/doc/foundation.icon/javaee-api)
+* [Java Smart Contract Overview](https://docs.google.com/presentation/d/1S24vCTcPJ5GOGfPu1sApJLwyOTTdgYEf/export/pdf)
+* [Smart Contract API document](https://www.javadoc.io/doc/foundation.icon/javaee-api)
 * [Gradle plugin for JavaEE](https://github.com/icon-project/gradle-javaee-plugin)
-* [A Java SCORE Library for Standard Tokens](https://github.com/sink772/javaee-tokens)
-* [scorex package for Java SCORE](https://github.com/icon-project/javaee-scorex)
-* [An Unit Testing Framework for Java SCORE](https://github.com/icon-project/javaee-unittest)
+* [A Java Smart Contract Library for Standard Tokens](https://github.com/havah-project/sclib-token)
+* [scorex package for Java Smart Contract](https://github.com/icon-project/javaee-scorex)
+* [An Unit Testing Framework for Java Smart Contract](https://github.com/icon-project/javaee-unittest)
 * [A fast and small JSON parser and writer for Java](https://github.com/sink772/minimal-json)
 * [`goloop` CLI command reference](https://github.com/icon-project/goloop/blob/master/doc/goloop_cli.md)
 
