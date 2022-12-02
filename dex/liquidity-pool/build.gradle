@@ -1,4 +1,4 @@
-version = '0.1.0'
+version = ''
 
 // for integration tests
 sourceSets {
@@ -11,27 +11,30 @@ configurations {
 
 dependencies {
     compileOnly 'foundation.icon:javaee-api:0.9.2'
+    implementation 'io.havah:havah-tokens:0.0.5'
+    implementation 'foundation.icon:javaee-scorex:0.5.2'
 
-    testImplementation project(':hsp20-token')
-    testImplementation 'foundation.icon:javaee-unittest:0.9.4'
-    testImplementation 'org.mockito:mockito-core:4.6.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
+    testImplementation 'foundation.icon:javaee-unittest:0.9.7'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.9.0'
 
     intTestImplementation 'foundation.icon:javaee-integration-test:0.9.0'
-    intTestImplementation 'foundation.icon:icon-sdk:2.1.0'
+    intTestImplementation 'foundation.icon:icon-sdk:2.2.0'
 }
 
 optimizedJar {
-    mainClassName = 'com.iconloop.score.example.SampleCrowdsale'
-    archivesBaseName = 'sample-crowdsale'
+    mainClassName = 'io.havah.contract.LiquidityPool'
+    archivesBaseName = 'liquidity-pool'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }
 
 deployJar {
     endpoints {
-        vega {
-            uri = 'https://ctz.vega.havah.io/api/v3/'
-            nid = 0x101
+        lisbon {
+            uri = 'https://lisbon.net.solidwallet.io/api/v3'
+            nid = 0x2
         }
         local {
             uri = 'http://localhost:9082/api/v3'
@@ -40,18 +43,13 @@ deployJar {
     }
     keystore = rootProject.hasProperty('keystoreName') ? "$keystoreName" : ''
     password = rootProject.hasProperty('keystorePass') ? "$keystorePass" : ''
-    parameters {
-        arg('_fundingGoalInIcx', '0x64')
-        arg('_tokenScore', 'cx451cee702db0e48aacbe446d53cbd8aa00142354')
-        arg('_durationInBlocks', '0x20')
-    }
 }
 
 test {
     useJUnitPlatform()
 }
 
-def sampleTokenJar = project(':hsp20-token').getTasks().getByName('optimizedJar')
+def LiquidityTokenJar = project(':liquidity-token').getTasks().getByName('optimizedJar')
 
 task integrationTest(type: Test, dependsOn: optimizedJar) {
     useJUnitPlatform()
@@ -67,7 +65,7 @@ task integrationTest(type: Test, dependsOn: optimizedJar) {
 
     def prefix = 'score.path.'
     systemProperty(prefix + project.name, optimizedJar.outputJarName)
-    systemProperty(prefix + 'sample-token', sampleTokenJar.outputJarName)
+    systemProperty(prefix + 'liquidity-token', LiquidityTokenJar.outputJarName)
 }
 
-integrationTest.dependsOn(sampleTokenJar)
+integrationTest.dependsOn(LiquidityTokenJar)

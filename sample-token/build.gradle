@@ -15,9 +15,9 @@ optimizedJar {
 
 deployJar {
     endpoints {
-        lisbon {
-            uri = 'https://lisbon.net.solidwallet.io/api/v3'
-            nid = 0x2
+        vega {
+            uri = 'https://ctz.vega.havah.io/api/v3/'
+            nid = 0x101
         }
         local {
             uri = 'http://localhost:9082/api/v3'

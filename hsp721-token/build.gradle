@@ -34,10 +34,6 @@ deployJar {
             uri = 'http://localhost:9082/api/v3'
             nid = 0x3
         }
-        deneb {
-            uri = 'https://ctz.dev.havah.io/api/v3/'
-            nid = 0x110
-        }
         vega {
             uri = 'https://ctz.vega.havah.io/api/v3/'
             nid = 0x101

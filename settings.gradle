@@ -7,4 +7,10 @@ include (
     'multisig-wallet',
     'sample-crowdsale',
     'sample-token',
+    'liquidity-token',
+    'liquidity-pool',
+    'pool-factory',
     'testinteg')
+project(':liquidity-token').projectDir = file('dex/liquidity-token')
+project(':liquidity-pool').projectDir = file('dex/liquidity-pool')
+project(':pool-factory').projectDir = file('dex/pool-factory')
