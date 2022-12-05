@@ -17,7 +17,7 @@ public class PoolFactory {
         this.name = _name;
     }
 
-    @External(readonly = true)
+    @External(readonly = true) 
     public String name() {
         return name;
     }
@@ -42,13 +42,17 @@ public class PoolFactory {
 
     @External
     public void setPoolContract(byte[] _contract) {
+        // simple access control - only the contract owner can set new pool contract
+        Context.require(Context.getCaller().equals(Context.getOwner()));
         Context.require(_contract != null, "_contract is null");
         Context.require(_contract.length > 0, "_contract length is 0");
         poolContract.set(_contract);
     }
 
     @External
-    public void setTokenContract(byte[] _contract) {
+    public void setLpTokenContract(byte[] _contract) {
+        // simple access control - only the contract owner can set new token contract
+        Context.require(Context.getCaller().equals(Context.getOwner()));
         Context.require(_contract != null, "_contract is null");
         Context.require(_contract.length > 0, "_contract length is 0");
         tokenContract.set(_contract);

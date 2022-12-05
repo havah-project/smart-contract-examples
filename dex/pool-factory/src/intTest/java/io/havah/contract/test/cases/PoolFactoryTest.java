@@ -51,7 +51,7 @@ public class PoolFactoryTest extends TestBase {
     }
 
     void _setTokenContract(Wallet wallet, PoolFactoryScore factory, byte[] contract) throws Exception {
-        TransactionResult result = factory.setTokenContract(wallet, contract);
+        TransactionResult result = factory.setLpTokenContract(wallet, contract);
         assertSuccess(result);
     }
 

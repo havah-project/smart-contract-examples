@@ -60,13 +60,13 @@ public class PoolFactoryScore extends Score {
         return new PoolFactoryScore(score);
     }
 
-    public TransactionResult setTokenContract(Wallet wallet, byte[] _contract)
+    public TransactionResult setLpTokenContract(Wallet wallet, byte[] _contract)
             throws ResultTimeoutException, IOException {
         RpcObject params = new RpcObject.Builder()
                 .put("_contract", new RpcValue(_contract))
                 .build();
 
-        return invokeAndWaitResult(wallet, "setTokenContract", params, BigInteger.valueOf(10000000));
+        return invokeAndWaitResult(wallet, "setLpTokenContract", params, BigInteger.valueOf(10000000));
     }
 
     public TransactionResult setPoolContract(Wallet wallet, byte[] _contract) throws ResultTimeoutException, IOException {
