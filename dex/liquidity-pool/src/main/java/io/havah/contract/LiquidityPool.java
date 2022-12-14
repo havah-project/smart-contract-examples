@@ -52,6 +52,7 @@ public class LiquidityPool {
 
         Context.require(lpToken.get() == null, "Pool already initialized");
         Context.require(!_baseToken.equals(_quoteToken), "base and quote token is same address");
+        Context.require(!_quoteToken.equals(ZERO_ADDRESS), "quoteToken is ZERO_ADDRESS");
 
         Context.require(_baseToken.isContract(), "baseToken is not contract");
         baseToken.set(_baseToken);
