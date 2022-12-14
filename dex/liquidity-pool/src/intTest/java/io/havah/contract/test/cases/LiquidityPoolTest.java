@@ -63,10 +63,6 @@ public class LiquidityPoolTest extends TestBase {
     }
 
     void _initialize(Wallet wallet, LiquidityPoolScore pool, Address baseToken, Address quoteToken, Address lpToken) throws Exception {
-        assertFailure(pool.initialize(wallet, baseToken, quoteToken, null));
-        assertFailure(pool.initialize(wallet, baseToken, null, lpToken));
-        assertFailure(pool.initialize(wallet, null, quoteToken, lpToken));
-
         TransactionResult result = pool.initialize(wallet, baseToken, quoteToken, lpToken);
         assertSuccess(result);
         assertEquals(baseToken, pool.baseToken());
@@ -217,8 +213,15 @@ public class LiquidityPoolTest extends TestBase {
         assertEquals(lpAmount.subtract(removeAmount), lpToken.balanceOf(wallets[1].getAddress()));
 
         LOG.info("swap");
+        LOG.infoEntering("swap", "HVH to HSP20");
         BigInteger swapValue = BigInteger.valueOf(20).multiply(ICX);
         _swap(wallets[1], poolScore, ZERO_ADDRESS, quoteToken.getAddress(), swapValue, wallets[1].getAddress(), BigInteger.ZERO);
+        LOG.infoExiting();
+        LOG.infoEntering("swap", "HSP20 to HVH");
+        swapValue = BigInteger.valueOf(200).multiply(ICX);
+        _approve(wallets[1], quoteToken, poolScore.getAddress(), swapValue);
+        _swap(wallets[1], poolScore, quoteToken.getAddress(), ZERO_ADDRESS, swapValue, wallets[1].getAddress(), BigInteger.ZERO);
+        LOG.infoExiting();
 
         LOG.infoExiting();
     }
@@ -277,7 +280,16 @@ public class LiquidityPoolTest extends TestBase {
         LOG.info("swap");
         BigInteger swapValue = BigInteger.valueOf(20).multiply(ICX);
         _approve(wallets[1], baseToken, poolScore.getAddress(), swapValue);
+        _approve(wallets[1], quoteToken, poolScore.getAddress(), swapValue);
+
+        LOG.infoEntering("swap", "base to quote");
         _swap(wallets[1], poolScore, baseToken.getAddress(), quoteToken.getAddress(), swapValue, wallets[1].getAddress(), BigInteger.ZERO);
+        LOG.infoExiting();
+        LOG.infoEntering("swap", "quote to base");
+        swapValue = BigInteger.valueOf(200).multiply(ICX);
+        _approve(wallets[1], quoteToken, poolScore.getAddress(), swapValue);
+        _swap(wallets[1], poolScore, quoteToken.getAddress(), baseToken.getAddress(), swapValue, wallets[1].getAddress(), BigInteger.ZERO);
+        LOG.infoExiting();
 
         LOG.infoExiting();
     }

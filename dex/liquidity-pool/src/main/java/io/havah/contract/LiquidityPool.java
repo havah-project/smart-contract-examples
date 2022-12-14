@@ -179,6 +179,9 @@ public class LiquidityPool {
 
         if(_fromToken.equals(ZERO_ADDRESS))
             Context.require(Context.getValue().compareTo(_value) == 0, "invalid _value");
+        else {
+            Context.require(Context.getValue().equals(BigInteger.ZERO), "msg.value is not zero");
+        }
 
         Address pool = Context.getAddress();
         Address base = baseToken();
@@ -202,7 +205,7 @@ public class LiquidityPool {
         BigInteger lpFees = _value.multiply(fee()).divide(FEE_SCALE);
 
         BigInteger oldFromToken = from.equals(ZERO_ADDRESS) ? Context.getBalance(pool).subtract(_value) : (BigInteger) Context.call(from, "balanceOf", pool);
-        BigInteger oldToToken = to.equals(ZERO_ADDRESS) ? Context.getBalance(pool).subtract(_value) : (BigInteger) Context.call(to, "balanceOf", pool);
+        BigInteger oldToToken = to.equals(ZERO_ADDRESS) ? Context.getBalance(pool) : (BigInteger) Context.call(to, "balanceOf", pool);
 
         BigInteger inputWithoutFees = _value.subtract(lpFees);
 

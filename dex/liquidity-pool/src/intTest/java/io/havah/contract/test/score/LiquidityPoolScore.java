@@ -21,6 +21,8 @@ import static foundation.icon.test.Env.LOG;
 
 public class LiquidityPoolScore extends Score {
 
+    private static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
+
     protected static TransactionResult.EventLog findEventLog(TransactionResult result, Address scoreAddress, String funcSig) {
         List<TransactionResult.EventLog> eventLogs = result.getEventLogs();
         for (TransactionResult.EventLog event : eventLogs) {
@@ -96,9 +98,9 @@ public class LiquidityPoolScore extends Score {
     public TransactionResult initialize(Wallet wallet, Address baseToken, Address quoteToken, Address lpToken)
             throws ResultTimeoutException, IOException {
         RpcObject params = new RpcObject.Builder()
-                .put("_baseToken", baseToken != null ? new RpcValue(baseToken) : null)
-                .put("_quoteToken", quoteToken != null ? new RpcValue(quoteToken) : null)
-                .put("_lpToken", lpToken != null ? new RpcValue(lpToken) : null)
+                .put("_baseToken", new RpcValue(baseToken))
+                .put("_quoteToken", new RpcValue(quoteToken))
+                .put("_lpToken", new RpcValue(lpToken))
                 .build();
 
         return invokeAndWaitResult(wallet, "initialize", params, BigInteger.valueOf(1000000));
@@ -127,13 +129,13 @@ public class LiquidityPoolScore extends Score {
             throws ResultTimeoutException, IOException {
         RpcObject params = new RpcObject.Builder()
                 .put("_receiver", new RpcValue(receiver))
-                .put("_fromToken", fromToken != null ? new RpcValue(fromToken) : null)
-                .put("_toToken", toToken != null ? new RpcValue(toToken) : null)
+                .put("_fromToken", new RpcValue(fromToken))
+                .put("_toToken", new RpcValue(toToken))
                 .put("_value", new RpcValue(value))
                 .put("_minimumReceive", new RpcValue(minimumReceive))
                 .build();
 
-        return invokeAndWaitResult(wallet, "swap", params, value, BigInteger.valueOf(10000000));
+        return invokeAndWaitResult(wallet, "swap", params, fromToken.equals(ZERO_ADDRESS) ? value : BigInteger.ZERO, BigInteger.valueOf(10000000));
     }
 
     public TransactionResult setFee(Wallet wallet, BigInteger fee)
