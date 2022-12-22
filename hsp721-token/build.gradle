@@ -11,7 +11,7 @@ configurations {
 
 dependencies {
     compileOnly 'foundation.icon:javaee-api:0.9.2'
-    implementation 'io.havah:havah-tokens:0.0.4'
+    implementation 'io.havah:havah-tokens:0.0.5'
 
     testImplementation 'foundation.icon:javaee-unittest:0.9.7'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.0'
