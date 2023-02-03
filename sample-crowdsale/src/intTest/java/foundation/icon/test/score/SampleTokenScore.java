@@ -63,17 +63,9 @@ public class SampleTokenScore extends Score {
 
     public TransactionResult transfer(Wallet wallet, Address to, BigInteger value)
             throws IOException, ResultTimeoutException {
-        return this.transfer(wallet, to, value, null);
-    }
-
-    public TransactionResult transfer(Wallet wallet, Address to, BigInteger value, byte[] data)
-            throws IOException, ResultTimeoutException {
         RpcObject.Builder builder = new RpcObject.Builder()
                 .put("_to", new RpcValue(to))
                 .put("_value", new RpcValue(value));
-        if (data != null) {
-            builder.put("_data", new RpcValue(data));
-        }
         return this.invokeAndWaitResult(wallet, "transfer", builder.build());
     }
 

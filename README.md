@@ -136,7 +136,6 @@ Here are the sample unit test cases.
   - [Crowdsale](sample-crowdsale/src/test/java/com/iconloop/score/example/SampleCrowdsaleTest.java)
   - [HSP20BurnableToken](hsp20-token/src/test/java/io/havah/contract/example/HSP20BurnableTest.java)
   - [HSP721Token (NFT)](hsp721-token/src/test/java/io/havah/contract/example/HSP721BasicTest.java)
-  - [SampleToken](sample-token/src/test/java/com/iconloop/score/example/SampleTokenTest.java)
 
 ### Integration testing
 
@@ -187,13 +186,6 @@ public static Object call(BigInteger value,
                           Address targetAddress, String method, Object... params);
 ```
 
-The following example is for calling `tokenFallback`.
-```java
-if (_to.isContract()) {
-    Context.call(_to, "tokenFallback", _from, _value, dataBytes);
-}
-```
-
 ## References
 
 * [Java Smart Contract Overview](https://docs.google.com/presentation/d/1S24vCTcPJ5GOGfPu1sApJLwyOTTdgYEf/export/pdf)
@@ -203,7 +195,7 @@ if (_to.isContract()) {
 * [scorex package for Java Smart Contract](https://github.com/icon-project/javaee-scorex)
 * [An Unit Testing Framework for Java Smart Contract](https://github.com/icon-project/javaee-unittest)
 * [A fast and small JSON parser and writer for Java](https://github.com/sink772/minimal-json)
-* [`goloop` CLI command reference](https://github.com/icon-project/goloop/blob/master/doc/goloop_cli.md)
+* [`goloop` CLI command reference](https://github.com/havah-project/goloop-havah/blob/main/doc/goloop_cli.md)
 
 ## License
 

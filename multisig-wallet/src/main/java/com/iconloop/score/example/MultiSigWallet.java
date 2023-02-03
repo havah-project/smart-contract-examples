@@ -16,12 +16,7 @@
 
 package com.iconloop.score.example;
 
-import score.Address;
-import score.ArrayDB;
-import score.BranchDB;
-import score.Context;
-import score.DictDB;
-import score.VarDB;
+import score.*;
 import score.annotation.EventLog;
 import score.annotation.External;
 import score.annotation.Optional;
@@ -66,13 +61,6 @@ public class MultiSigWallet
         BigInteger value = Context.getValue();
         if (value.signum() > 0) {
             Deposit(Context.getCaller(), value);
-        }
-    }
-
-    @External
-    public void tokenFallback(Address _from, BigInteger _value, byte[] _data) {
-        if (_value.signum() > 0) {
-            DepositToken(_from, _value, _data);
         }
     }
 
@@ -432,7 +420,4 @@ public class MultiSigWallet
 
     @EventLog(indexed=1)
     protected void Deposit(Address _sender, BigInteger _value) {}
-
-    @EventLog(indexed=1)
-    protected void DepositToken(Address _sender, BigInteger _value, byte[] _data) {}
 }

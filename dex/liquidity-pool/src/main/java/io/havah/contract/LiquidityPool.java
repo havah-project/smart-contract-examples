@@ -15,7 +15,7 @@ import static score.Context.require;
 
 public class LiquidityPool {
     protected final String name;
-    private static final Address ZERO_ADDRESS = Address.fromString("cx0000000000000000000000000000000000000000");
+    private static final Address NATIVE_COIN = Address.fromString("cx0000000000000000000000000000000000000000");
     private static final BigInteger FEE_SCALE = BigInteger.valueOf(10_000);
     private static final BigInteger MIN_LIQUIDITY = BigInteger.valueOf(1_000);
     protected final VarDB<Address> baseToken = Context.newVarDB("baseToken", Address.class);
@@ -36,13 +36,7 @@ public class LiquidityPool {
     @Payable
     public void fallback() {
         Context.require(lpToken.get() != null, "Pool not yet initialized");
-        Context.require(ZERO_ADDRESS.equals(baseToken.get()), "not supported token");
-    }
-
-    @External
-    public void tokenFallback(Address _from, BigInteger _value, byte[] _data) {
-        Context.require(lpToken.get() != null, "Pool not yet initialized");
-        Context.require(_from.equals(baseToken.get()) || _from.equals(quoteToken.get()), "not supported token");
+        Context.require(NATIVE_COIN.equals(baseToken.get()), "not supported token");
     }
 
     @External
@@ -52,7 +46,7 @@ public class LiquidityPool {
 
         Context.require(lpToken.get() == null, "Pool already initialized");
         Context.require(!_baseToken.equals(_quoteToken), "base and quote token is same address");
-        Context.require(!_quoteToken.equals(ZERO_ADDRESS), "quoteToken is ZERO_ADDRESS");
+        Context.require(!_quoteToken.equals(NATIVE_COIN), "quoteToken is SYSTEM_ADDRESS");
 
         Context.require(_baseToken.isContract(), "baseToken is not contract");
         baseToken.set(_baseToken);
@@ -77,7 +71,7 @@ public class LiquidityPool {
         BigInteger poolBaseAmount, poolQuoteAmount;
 
         Address base = baseToken.get();
-        if (base.equals(ZERO_ADDRESS)) {
+        if (base.equals(NATIVE_COIN)) {
             Context.require(Context.getValue().equals(_baseValue), "invalid _baseAmount");
             poolBaseAmount = Context.getBalance(Context.getAddress()).subtract(_baseValue);
         } else {
@@ -142,7 +136,7 @@ public class LiquidityPool {
         BigInteger poolBaseAmount, poolQuoteAmount;
 
         Address baseAddress = baseToken.get();
-        poolBaseAmount = baseAddress.equals(ZERO_ADDRESS) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(baseAddress,"balanceOf", Context.getAddress());
+        poolBaseAmount = baseAddress.equals(NATIVE_COIN) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(baseAddress,"balanceOf", Context.getAddress());
 
         Address quoteAddress = quoteToken.get();
         poolQuoteAmount = (BigInteger) Context.call(quoteAddress,"balanceOf", Context.getAddress());
@@ -150,7 +144,7 @@ public class LiquidityPool {
         BigInteger baseToWithdraw = _lpAmount.multiply(poolBaseAmount).divide(liquidity);
         BigInteger quoteToWithdraw = _lpAmount.multiply(poolQuoteAmount).divide(liquidity);
 
-        if (baseAddress.equals(ZERO_ADDRESS)) {
+        if (baseAddress.equals(NATIVE_COIN)) {
             Context.transfer(caller, baseToWithdraw);
         } else {
             Context.call(baseAddress, "transfer", caller, baseToWithdraw);
@@ -177,7 +171,7 @@ public class LiquidityPool {
         BigInteger liquidity = (BigInteger) Context.call(lpToken.get(), "totalSupply");
         Context.require(liquidity.compareTo(MIN_LIQUIDITY) >= 0, "not enough liquidity");
 
-        if(_fromToken.equals(ZERO_ADDRESS))
+        if(_fromToken.equals(NATIVE_COIN))
             Context.require(Context.getValue().compareTo(_value) == 0, "invalid _value");
         else {
             Context.require(Context.getValue().equals(BigInteger.ZERO), "msg.value is not zero");
@@ -187,10 +181,10 @@ public class LiquidityPool {
         Address base = baseToken();
         Address quote = quoteToken();
 
-        if (!_fromToken.equals(ZERO_ADDRESS)) {
+        if (!_fromToken.equals(NATIVE_COIN)) {
             Context.require(_fromToken.equals(base) || _fromToken.equals(quote), "_fromToken is not supported");
         }
-        if (!_toToken.equals(ZERO_ADDRESS)) {
+        if (!_toToken.equals(NATIVE_COIN)) {
             Context.require(_toToken.equals(base) || _toToken.equals(quote), "_toToken is not supported");
         }
 
@@ -204,8 +198,8 @@ public class LiquidityPool {
         }
         BigInteger lpFees = _value.multiply(fee()).divide(FEE_SCALE);
 
-        BigInteger oldFromToken = from.equals(ZERO_ADDRESS) ? Context.getBalance(pool).subtract(_value) : (BigInteger) Context.call(from, "balanceOf", pool);
-        BigInteger oldToToken = to.equals(ZERO_ADDRESS) ? Context.getBalance(pool) : (BigInteger) Context.call(to, "balanceOf", pool);
+        BigInteger oldFromToken = from.equals(NATIVE_COIN) ? Context.getBalance(pool).subtract(_value) : (BigInteger) Context.call(from, "balanceOf", pool);
+        BigInteger oldToToken = to.equals(NATIVE_COIN) ? Context.getBalance(pool) : (BigInteger) Context.call(to, "balanceOf", pool);
 
         BigInteger inputWithoutFees = _value.subtract(lpFees);
 
@@ -218,10 +212,10 @@ public class LiquidityPool {
         Context.require(sendAmount.compareTo(_minimumReceive) >= 0,
                 "MinimumReceiveError: Receive amount " + sendAmount + " below supplied minimum");
 
-        if (!from.equals(ZERO_ADDRESS))
+        if (!from.equals(NATIVE_COIN))
             Context.call(from, "transferFrom", Context.getCaller(), pool, _value);
 
-        if (to.equals(ZERO_ADDRESS)) {
+        if (to.equals(NATIVE_COIN)) {
             Context.transfer(_receiver, sendAmount);
         } else {
             Context.call(to, "transfer", _receiver, sendAmount);
@@ -267,10 +261,10 @@ public class LiquidityPool {
     }
 
     protected Map<String, Object> _priceOfAInB(Address tokenA, Address tokenB) {
-        BigInteger ATokenTotal = tokenA.equals(ZERO_ADDRESS) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(tokenA, "totalSupply");
-        BigInteger BTokenTotal = tokenB.equals(ZERO_ADDRESS) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(tokenB, "totalSupply");
-        BigInteger ATokenDecimals = tokenA.equals(ZERO_ADDRESS) ? BigInteger.valueOf(18) : (BigInteger) Context.call(tokenA, "decimals");
-        BigInteger BTokenDecimals = tokenB.equals(ZERO_ADDRESS) ? BigInteger.valueOf(18) : (BigInteger) Context.call(tokenB, "decimals");
+        BigInteger ATokenTotal = tokenA.equals(NATIVE_COIN) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(tokenA, "totalSupply");
+        BigInteger BTokenTotal = tokenB.equals(NATIVE_COIN) ? Context.getBalance(Context.getAddress()) : (BigInteger) Context.call(tokenB, "totalSupply");
+        BigInteger ATokenDecimals = tokenA.equals(NATIVE_COIN) ? BigInteger.valueOf(18) : (BigInteger) Context.call(tokenA, "decimals");
+        BigInteger BTokenDecimals = tokenB.equals(NATIVE_COIN) ? BigInteger.valueOf(18) : (BigInteger) Context.call(tokenB, "decimals");
 
         BigInteger price, decimals;
         switch (ATokenDecimals.compareTo(BTokenDecimals)) {

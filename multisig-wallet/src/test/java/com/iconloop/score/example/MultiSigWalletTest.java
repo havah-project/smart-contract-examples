@@ -31,12 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class MultiSigWalletTest extends TestBase {
     private static final ServiceManager sm = getServiceManager();
@@ -66,13 +62,6 @@ class MultiSigWalletTest extends TestBase {
     void fallback() {
         sm.transfer(owners[0], multisigScore.getAddress(), ICX);
         verify(multisigSpy).Deposit(owners[0].getAddress(), ICX);
-    }
-
-    @Test
-    void tokenFallback() {
-        byte[] data = "test".getBytes();
-        multisigScore.invoke(owners[0], "tokenFallback", owners[0].getAddress(), ICX, data);
-        verify(multisigSpy).DepositToken(owners[0].getAddress(), ICX, data);
     }
 
     @Test

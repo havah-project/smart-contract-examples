@@ -60,19 +60,17 @@ public class SampleCrowdsale
         return "SampleCrowdsale";
     }
 
-    /*
-     * Receives initial tokens to reward to the contributors.
-     */
     @External
-    public void tokenFallback(Address _from, BigInteger _value, byte[] _data) {
-        // check if the caller is a token SCORE address that this SCORE is interested in
-        Context.require(Context.getCaller().equals(this.tokenScore));
-
-        // depositing tokens can only be done by owner
-        Context.require(Context.getOwner().equals(_from));
+    public void startCrowdsale(BigInteger _value) {
+        // start crowdsale can only caller
+        Context.require(Context.getOwner().equals(Context.getCaller()));
 
         // value should be greater than zero
         Context.require(_value.compareTo(BigInteger.ZERO) >= 0);
+
+        // token balance be greater than _value
+        BigInteger balance = (BigInteger) Context.call(this.tokenScore, "balanceOf", Context.getAddress());
+        Context.require(balance.compareTo(_value) >= 0);
 
         // start Crowdsale hereafter
         Context.require(this.crowdsaleClosed);
@@ -103,7 +101,7 @@ public class SampleCrowdsale
 
         // give tokens to the contributor as a reward
         byte[] _data = "called from Crowdsale".getBytes();
-        Context.call(this.tokenScore, "transfer", _from, _value, _data);
+        Context.call(this.tokenScore, "transfer", _from, _value);
         // emit eventlog
         FundTransfer(_from, _value, true);
     }

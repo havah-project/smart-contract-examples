@@ -53,6 +53,14 @@ public class CrowdSaleScore extends Score {
         super(other);
     }
 
+    public TransactionResult startCrowdsale(Wallet wallet, BigInteger value)
+            throws ResultTimeoutException, IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_value", new RpcValue(value))
+                .build();
+        return invokeAndWaitResult(wallet, "startCrowdsale", params, null);
+    }
+
     public TransactionResult checkGoalReached(Wallet wallet)
             throws ResultTimeoutException, IOException {
         return invokeAndWaitResult(wallet, "checkGoalReached", null, null);

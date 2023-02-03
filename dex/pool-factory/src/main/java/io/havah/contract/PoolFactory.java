@@ -8,7 +8,7 @@ import java.math.BigInteger;
 
 public class PoolFactory {
     protected final String name;
-    private static final Address ZERO_ADDRESS = Address.fromString("cx0000000000000000000000000000000000000000");
+    private static final Address NATIVE_COIN = Address.fromString("cx0000000000000000000000000000000000000000");
     protected VarDB<byte[]> poolContract = Context.newVarDB("poolContract", byte[].class);
     protected VarDB<byte[]> tokenContract = Context.newVarDB("tokenContract", byte[].class);
     protected BranchDB<Address, DictDB<Address, Address>> liquidityPools = Context.newBranchDB("liquidityPools", Address.class);
@@ -37,7 +37,7 @@ public class PoolFactory {
     }
 
     protected boolean _isReverse(Address base, Address quote) {
-        return base.hashCode() > quote.hashCode() ? !base.equals(ZERO_ADDRESS) : quote.equals(ZERO_ADDRESS);
+        return base.hashCode() > quote.hashCode() ? !base.equals(NATIVE_COIN) : quote.equals(NATIVE_COIN);
     }
 
     @External

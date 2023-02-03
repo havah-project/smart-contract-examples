@@ -97,6 +97,8 @@ class CrowdsaleTest extends TestBase {
         // transfer all tokens to crowdsale score
         LOG.infoEntering("transfer token", "all tokens to crowdsale score from owner");
         TransactionResult result = tokenScore.transfer(ownerWallet, crowdsaleScore.getAddress(), ICX.multiply(initialSupply));
+        assertSuccess(result);
+        result = crowdsaleScore.startCrowdsale(ownerWallet, ICX.multiply(initialSupply));
         crowdsaleScore.ensureFundingGoal(result, fundingGoalInIcx);
         tokenScore.ensureTokenBalance(crowdsaleScore.getAddress(), initialSupply.longValue());
         LOG.infoExiting();

@@ -21,7 +21,7 @@ import static foundation.icon.test.Env.LOG;
 
 public class LiquidityPoolScore extends Score {
 
-    private static final Address ZERO_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
+    private static final Address SYSTEM_ADDRESS = new Address("cx0000000000000000000000000000000000000000");
 
     protected static TransactionResult.EventLog findEventLog(TransactionResult result, Address scoreAddress, String funcSig) {
         List<TransactionResult.EventLog> eventLogs = result.getEventLogs();
@@ -135,7 +135,7 @@ public class LiquidityPoolScore extends Score {
                 .put("_minimumReceive", new RpcValue(minimumReceive))
                 .build();
 
-        return invokeAndWaitResult(wallet, "swap", params, fromToken.equals(ZERO_ADDRESS) ? value : BigInteger.ZERO, BigInteger.valueOf(10000000));
+        return invokeAndWaitResult(wallet, "swap", params, fromToken.equals(SYSTEM_ADDRESS) ? value : BigInteger.ZERO, BigInteger.valueOf(10000000));
     }
 
     public TransactionResult setFee(Wallet wallet, BigInteger fee)

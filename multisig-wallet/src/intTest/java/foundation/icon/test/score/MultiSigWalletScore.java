@@ -23,6 +23,7 @@ import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.icx.transport.jsonrpc.RpcObject;
 import foundation.icon.icx.transport.jsonrpc.RpcValue;
+import foundation.icon.test.Constants;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TransactionFailureException;
 import foundation.icon.test.TransactionHandler;
@@ -171,12 +172,12 @@ public class MultiSigWalletScore extends Score {
     }
 
     public void ensureIcxTransfer(TransactionResult result, Address from, Address to, long value) throws IOException {
-        TransactionResult.EventLog event = findEventLog(result, getAddress(), "Transfer(Address,Address,int)");
+        TransactionResult.EventLog event = findEventLog(result, Constants.SYSTEM_ADDRESS, "Transfer(Address,Address,int)");
         if (event != null) {
             BigInteger icxValue = IconAmount.of(BigInteger.valueOf(value), IconAmount.Unit.ICX).toLoop();
             Address _from = event.getIndexed().get(1).asAddress();
             Address _to = event.getIndexed().get(2).asAddress();
-            BigInteger _value = event.getIndexed().get(3).asInteger();
+            BigInteger _value = event.getData().get(0).asInteger();
             if (from.equals(_from) && to.equals(_to) && icxValue.equals(_value)) {
                 return; // ensured
             }

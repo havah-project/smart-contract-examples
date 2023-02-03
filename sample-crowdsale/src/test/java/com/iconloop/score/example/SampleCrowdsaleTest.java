@@ -29,12 +29,8 @@ import java.math.BigInteger;
 import static java.math.BigInteger.TEN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
 class SampleCrowdsaleTest extends TestBase {
     // sample-token
@@ -54,7 +50,6 @@ class SampleCrowdsaleTest extends TestBase {
     private Score crowdsaleScore;
 
     private SampleCrowdsale crowdsaleSpy;
-    private final byte[] startCrowdsaleBytes = "start crowdsale".getBytes();
 
     @BeforeEach
     public void setup() throws Exception {
@@ -71,14 +66,14 @@ class SampleCrowdsaleTest extends TestBase {
 
     private void startCrowdsale() {
         // transfer all tokens to crowdsale score
-        tokenScore.invoke(owner, "transfer", crowdsaleScore.getAddress(), totalSupply, startCrowdsaleBytes);
+        tokenScore.invoke(owner, "transfer", crowdsaleScore.getAddress(), totalSupply);
+        crowdsaleScore.invoke(owner, "startCrowdsale", totalSupply);
     }
 
     @Test
-    void tokenFallback() {
+    void verify_startCrowdsale() {
         startCrowdsale();
         // verify
-        verify(crowdsaleSpy).tokenFallback(owner.getAddress(), totalSupply, startCrowdsaleBytes);
         verify(crowdsaleSpy).CrowdsaleStarted(eq(ICX.multiply(fundingGoalInICX)), anyLong());
         assertEquals(totalSupply, tokenScore.call("balanceOf", crowdsaleScore.getAddress()));
     }
