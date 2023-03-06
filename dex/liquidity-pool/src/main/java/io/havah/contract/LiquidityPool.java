@@ -133,6 +133,9 @@ public class LiquidityPool {
         BigInteger liquidity = (BigInteger) Context.call(lp, "totalSupply");
         Context.require(liquidity.compareTo(_lpAmount) >= 0, "insufficient balance");
 
+        Context.call(lpToken.get(), "transferFrom", caller, Context.getAddress(), _lpAmount);
+        Context.call(lpToken.get(), "burn", _lpAmount);
+
         BigInteger poolBaseAmount, poolQuoteAmount;
 
         Address baseAddress = baseToken.get();
@@ -150,9 +153,6 @@ public class LiquidityPool {
             Context.call(baseAddress, "transfer", caller, baseToWithdraw);
         }
         Context.call(quoteAddress, "transfer", caller, quoteToWithdraw);
-
-        Context.call(lpToken.get(), "transferFrom", caller, Context.getAddress(), _lpAmount);
-        Context.call(lpToken.get(), "burn", _lpAmount);
 
         LiquidityRemoved(caller, _lpAmount, baseToWithdraw, quoteToWithdraw);
     }
