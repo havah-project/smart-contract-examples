@@ -29,7 +29,7 @@ The compiled jar bundle will be generated at `./hello-world/build/libs/hello-wor
 
 ### 2. Optimize the jar
 
-You need to optimize your jar bundle before you deploy it to local or ICON networks.
+You need to optimize your jar bundle before you deploy it to local or HAVAH networks.
 This involves some pre-processing to ensure the actual deployment successful.
 
 `gradle-javaee-plugin` is a Gradle plugin to automate the process of generating the optimized jar bundle.
@@ -44,7 +44,7 @@ The output jar will be located at `./hello-world/build/libs/hello-world-0.1.0-op
 
 #### Using `goloop` CLI command
 
-Now you can deploy the optimized jar to ICON networks that support the Java Smart Contract execution environment.
+Now you can deploy the optimized jar to HAVAH networks that support the Java Smart Contract execution environment.
 Assuming you are running a local network that is listening on port 9082 for incoming requests,
 you can create a deploy transaction with the optimized jar and deploy it to the local network as follows.
 
@@ -140,7 +140,7 @@ Here are the sample unit test cases.
 ### Integration testing
 
 [`testinteg`](testinteg) subproject can be used for the integration testing.
-It assumes there is a running ICON network (either local or remote) that can be connected for the testing.
+It assumes there is a running HAVAH network (either local or remote) that can be connected for the testing.
 It uses the [ICON SDK for Java](https://github.com/icon-project/icon-sdk-java) to interact with the network.
 The [default configuration](testinteg/conf/env.props) is for [gochain-local](https://github.com/icon-project/gochain-local) network.
 If you want to change this configuration, either modify the configuration file directly
@@ -185,6 +185,40 @@ public static Object call(Address targetAddress, String method, Object... params
 public static Object call(BigInteger value,
                           Address targetAddress, String method, Object... params);
 ```
+
+
+## Sample projects
+
+### hello-world
+
+First sample for JAVA contract
+
+### hsp20-token
+
+This subproject contains the Java implementation for HSP-20 Token
+
+### hsp721-token
+
+This subproject contains the Java implementation for HSP-721 Token
+
+### hsp1155-token
+
+This subproject contains the Java implementation for HSP-1155 Token
+
+### multisig-wallet
+
+This subproject contains the Java implementation for Multisignature Wallet
+
+### simple dex
+
+This subprojects contains the Java implementation for simple DEX(Decentralized Exchanges). It inspired by [Uniswap v1](https://hackmd.io/@HaydenAdams/HJ9jLsfTz).
+
+- dex/liquidity-pool
+    - HSP20 Token-HSP20 Token or HSP20 Token-Native HVH pair pool contract.
+- dex/liquidity-token
+    - Liquidity Token for pool. this token represent a liquidity providers contribution to an liquidity pool.
+- dex/pool-factory
+    - Factory for liquidity pool.
 
 ## References
 

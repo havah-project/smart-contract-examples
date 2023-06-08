@@ -44,7 +44,6 @@ public class PoolFactory {
     public void setPoolContract(byte[] _contract) {
         // simple access control - only the contract owner can set new pool contract
         Context.require(Context.getCaller().equals(Context.getOwner()));
-        Context.require(_contract != null, "_contract is null");
         Context.require(_contract.length > 0, "_contract length is 0");
         poolContract.set(_contract);
     }
@@ -53,7 +52,6 @@ public class PoolFactory {
     public void setLpTokenContract(byte[] _contract) {
         // simple access control - only the contract owner can set new token contract
         Context.require(Context.getCaller().equals(Context.getOwner()));
-        Context.require(_contract != null, "_contract is null");
         Context.require(_contract.length > 0, "_contract length is 0");
         tokenContract.set(_contract);
     }
