@@ -14,5 +14,3 @@ by adding the following dependency in your `build.gradle`.
 ```groovy
 testImplementation 'foundation.icon:javaee-integration-test:0.9.0'
 ```
-
-For a more complete example, please visit [Java Smart Contract Examples](https://github.com/havah-project/smart-contract-examples).
