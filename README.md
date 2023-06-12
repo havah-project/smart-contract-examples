@@ -211,7 +211,7 @@ This subproject contains the Java implementation for Multisignature Wallet
 
 ### simple dex
 
-This subprojects contains the Java implementation for simple DEX(Decentralized Exchanges). It inspired by [Uniswap v1](https://hackmd.io/@HaydenAdams/HJ9jLsfTz).
+This subprojects contains the Java implementation for simple DEX(Decentralized Exchanges). We adopted the swap mechanism inspired by [Uniswap v1](https://hackmd.io/@HaydenAdams/HJ9jLsfTz).
 
 - dex/liquidity-pool
     - HSP20 Token-HSP20 Token or HSP20 Token-Native HVH pair pool contract.
