@@ -195,23 +195,23 @@ First sample for JAVA contract
 
 ### hsp20-token
 
-This subproject contains the Java implementation for HSP-20 Token
+This subproject contains the Java implementation of HSP-20 Token
 
 ### hsp721-token
 
-This subproject contains the Java implementation for HSP-721 Token
+This subproject contains the Java implementation of HSP-721 Token
 
 ### hsp1155-token
 
-This subproject contains the Java implementation for HSP-1155 Token
+This subproject contains the Java implementation of HSP-1155 Token
 
 ### multisig-wallet
 
-This subproject contains the Java implementation for Multisignature Wallet
+This subproject contains the Java implementation of Multisignature Wallet
 
 ### simple dex
 
-This subprojects contains the Java implementation for simple DEX(Decentralized Exchanges). We adopted the swap mechanism inspired by [Uniswap v1](https://hackmd.io/@HaydenAdams/HJ9jLsfTz).
+This subprojects contains the Java implementation of simple DEX(Decentralized Exchanges). We adopted the swap mechanism inspired by [Uniswap v1](https://hackmd.io/@HaydenAdams/HJ9jLsfTz).
 
 - dex/liquidity-pool
     - HSP20 Token-HSP20 Token or HSP20 Token-Native HVH pair pool contract.
@@ -219,6 +219,11 @@ This subprojects contains the Java implementation for simple DEX(Decentralized E
     - Liquidity Token for pool. this token represent a liquidity providers contribution to an liquidity pool.
 - dex/pool-factory
     - Factory for liquidity pool.
+
+### merkle airdrop
+
+This subprojects contains the Java implementation of merkle airdrop. Contract is compatible with [merkletreejs](https://github.com/merkletreejs/merkletreejs?tab=readme-ov-file).
+
 
 ## References
 
