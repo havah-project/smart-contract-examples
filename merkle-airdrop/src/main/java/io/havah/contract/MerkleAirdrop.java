@@ -10,61 +10,77 @@ import java.math.BigInteger;
 import java.util.Map;
 
 public class MerkleAirdrop {
-    static final VarDB<String> name = Context.newVarDB("name", String.class);
     static final Address ZERO_ADDRESS = Address.fromString("hx0000000000000000000000000000000000000000");
-    final VarDB<Address> token = Context.newVarDB("token", Address.class);
-    final VarDB<byte[]> merkleRoot = Context.newVarDB("merkleRoot", byte[].class);
-    final VarDB<Long> startTime = Context.newVarDB("startTime", Long.class);
-    final VarDB<Long> endTime = Context.newVarDB("endTime", Long.class);
-    final VarDB<BigInteger> totalAmount = Context.newVarDB("totalAmount", BigInteger.class);
-    final DictDB<Address, Boolean> claimed = Context.newDictDB("claimed", Boolean.class);
-    final VarDB<BigInteger> totalClaimed = Context.newVarDB("total_claimed", BigInteger.class);
+    static final VarDB<String> name = Context.newVarDB("name", String.class);
+    static final VarDB<Address> admin = Context.newVarDB("score_admin", Address.class);
+    static final DictDB<Integer, Airdrop> airdrops = Context.newDictDB("airdrops", Airdrop.class);
+    static final VarDB<Integer> lastId = Context.newVarDB("last_id", Integer.class);
+    static final BranchDB<Integer, DictDB<Address, Boolean>> claimed = Context.newBranchDB("claimed", Boolean.class);
+    static final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
 
     protected boolean _isCaller(Address address) {
         return Context.getCaller().equals(address);
     }
 
-    protected void _onlyOwner() {
-        Context.require(_isCaller(Context.getOwner()), "Only owner can call this method");
+    protected void _require(boolean condition, String err) {
+        if (!condition) {
+            Context.revert(err);
+        }
     }
 
-    protected void _checkTokenAddress(Address address) {
-        Context.require(address.equals(ZERO_ADDRESS) || address.isContract(), "Not token address");
+    @External
+    public void setAdmin(Address _admin) {
+        _onlyAdmin();
+        admin.set(_admin);
+    }
+
+    @External(readonly = true)
+    public Address admin() {
+        return admin.getOrDefault(Context.getOwner());
+    }
+
+    @External(readonly = true)
+    public String name() {
+        return name.get();
+    }
+
+    protected void _onlyAdmin() {
+        _require(_isCaller(admin()), "Only administrator can call this method");
+    }
+
+    protected void _checkContract(Address address) {
+        _require(address.equals(ZERO_ADDRESS) || address.isContract(), "Not contract address");
     }
 
     protected void _checkNotEmpty(byte[] hash) {
-        Context.require(hash != null && hash.length > 0, "Empty hash");
+        _require(hash != null && hash.length > 0, "Empty hash");
     }
 
     protected void _checkTime(long start, long end) {
-        Context.require(end == 0 || end > start, "Invalid time");
+        _require(end == 0 || end > start, "Invalid time");
     }
 
     protected void _checkAmount(BigInteger amount) {
-        Context.require(amount == null || amount.signum() > 0, "Invalid amount");
+        _require(amount == null || amount.signum() > 0, "Invalid amount");
     }
 
-    protected void _requireNotRegisterMerkleRoot() {
-        Context.require(merkleRoot.get() == null, "Merkle root was registered");
+    protected void _checkExistId(int id) {
+        _require(id > -1 && id <= lastId.get(), "Invalid id");
     }
 
-    protected void _requireRegisterMerkleRoot() {
-        Context.require(merkleRoot.get() != null, "Merkle root was not registered");
+    protected void _checkNotStarted(Airdrop airdrop) {
+        _require(Context.getBlockTimestamp() < airdrop.startTime, "Already started airdrop");
     }
 
-    protected void _requireNotStartAirdrop() {
-        Context.require(Context.getBlockTimestamp() < startTime.get(), "Already started");
-    }
-
-    protected void _requireStartAirdrop() {
+    protected void _checkOpenAirdrop(Airdrop airdrop) {
         long time = Context.getBlockTimestamp();
-        Context.require(time >= startTime.get(), "Not started");
-        if(endTime.get() > 0)
-            Context.require( time < endTime.get(), "Not started");
+        _require(time >= airdrop.startTime, "Not open airdrop");
+        if(airdrop.endTime > 0)
+            _require( time < airdrop.endTime, "Not open airdrop");
     }
 
-    protected void _checkNotClaimed(Address caller) {
-        Context.require(!claimed.getOrDefault(caller, false), "Already claimed");
+    protected void _checkNotClaimed(int id, Address caller) {
+        _require(!claimed.at(id).getOrDefault(caller, false), "Already claimed");
     }
 
     protected boolean _verifyProof(byte[] merkleRoot, Address caller, BigInteger amount, byte[][] proof) {
@@ -120,13 +136,21 @@ public class MerkleAirdrop {
         }
     }
 
-    public MerkleAirdrop(String _name) {
-        name.set(_name);
+    protected void _claim(int _id, Address _recipient, BigInteger _amount, byte[][] _proof) {
+        _checkExistId(_id);
+        _checkNotClaimed(_id, _recipient);
+        Airdrop airdrop = airdrops.get(_id);
+        _checkOpenAirdrop(airdrop);
+        _require(_verifyProof(airdrop.merkleRoot, _recipient, _amount, _proof), "Invalid proof");
+
+        claimed.at(_id).set(_recipient, true);
+        totalClaimed.set(_id, totalClaimed.getOrDefault(_id, BigInteger.ZERO).add(_amount));
+        _transfer(airdrop.token, _recipient, _amount);
+        Claimed(_id, airdrop.token, _recipient, _amount);
     }
 
-    @External(readonly = true)
-    public String name() {
-        return name.get();
+    public MerkleAirdrop(String _name) {
+        name.set(_name);
     }
 
     @Payable
@@ -138,94 +162,129 @@ public class MerkleAirdrop {
     }
 
     @External
-    public void registerMerkleRoot(Address _token, byte[] _merkleRoot, long _startTime, @Optional long _endTime, @Optional BigInteger _totalAmount) {
-        _onlyOwner();
-        _requireNotRegisterMerkleRoot();
-        _checkTokenAddress(_token);
+    public void addAirdrop(Address _token, byte[] _merkleRoot, long _startTime, @Optional long _endTime, @Optional BigInteger _totalAmount) {
+        _onlyAdmin();
+        _checkContract(_token);
         _checkNotEmpty(_merkleRoot);
         _checkTime(_startTime, _endTime);
         _checkAmount(_totalAmount);
 
-        token.set(_token);
-        merkleRoot.set(_merkleRoot);
-        startTime.set(_startTime);
-        endTime.set(_endTime);
-        if(_totalAmount != null)
-            totalAmount.set(_totalAmount);
+        int id = lastId() + 1;
+        airdrops.set(id, new Airdrop(id, _token, _merkleRoot, _startTime, _endTime, _totalAmount));
+        lastId.set(id);
 
-        MerkleRootRegistered(_token, _merkleRoot, _startTime, _endTime, _getSafeString(_totalAmount));
+        AirdropAdded(id, _token, _merkleRoot, _startTime, _endTime, _getSafeString(_totalAmount));
     }
 
     @External
-    public void claim(BigInteger _amount, byte[][] _proof) {
-        Address caller = Context.getCaller();
-        _checkNotClaimed(caller);
-        _requireStartAirdrop();
-        Context.require(_verifyProof(merkleRoot.get(), caller, _amount, _proof), "Invalid proof");
+    public void updateAirdrop(int _id, long _startTime, @Optional long _endTime, @Optional BigInteger _totalAmount) {
+        _onlyAdmin();
+        _checkExistId(_id);
+        _checkTime(_startTime, _endTime);
+        _checkAmount(_totalAmount);
 
-        claimed.set(caller, true);
-        totalClaimed.set(totalClaimed.getOrDefault(BigInteger.ZERO).add(_amount));
-        _transfer(token.get(), caller, _amount);
-        Claimed(token.get(), caller, _amount);
+        Airdrop airdrop = airdrops.get(_id);
+        _checkNotStarted(airdrop);
+
+        airdrop.startTime = _startTime;
+        airdrop.endTime = _endTime;
+        airdrop.totalAmount = _totalAmount;
+
+        airdrops.set(_id, airdrop);
+        AirdropUpdated(_id, _startTime, _endTime, _getSafeString(_totalAmount));
+    }
+
+    @External
+    public void claim(int _id, BigInteger _amount, byte[][] _proof) {
+        _claim(_id, Context.getCaller(), _amount, _proof);
+    }
+
+    @External
+    public void giveaway(int _id, Address _recipient, BigInteger _amount, byte[][] _proof) {
+        _claim(_id, _recipient, _amount, _proof);
     }
 
     @External
     public void withdraw(Address _token, BigInteger _amount, @Optional Address _recipient) {
-        _onlyOwner();
-        _recipient = _recipient == null ? Context.getCaller() : _recipient;
+        _onlyAdmin();
+        _recipient = _recipient == null ? admin() : _recipient;
         _transfer(_token, _recipient, _amount);
         Withdrawn(_token, _recipient, _amount);
     }
 
     @External(readonly = true)
-    public byte[] merkleRoot() {
-        return merkleRoot.get();
+    public int lastId() {
+        return lastId.getOrDefault(-1);
     }
 
     @External(readonly = true)
-    public Map info() {
-        Address airdropToken = token.get();
-        if(airdropToken != null) {
+    public byte[] merkleRoot(int _id) {
+        Airdrop airdrop = airdrops.get(_id);
+        if(airdrop != null) {
+            return airdrop.merkleRoot;
+        }
+        return null;
+    }
+
+    @External(readonly = true)
+    public Map info(int _id) {
+        Airdrop airdrop = airdrops.get(_id);
+        if(airdrop != null) {
             long time = Context.getBlockTimestamp();
-            long start = startTime.get();
-            long end = endTime.get();
             return Map.of(
-                    "token", airdropToken,
-                    "start", start,
-                    "end", end,
-                    "total", totalAmount.getOrDefault(BigInteger.ZERO),
-                    "claimed", totalClaimed.getOrDefault(BigInteger.ZERO),
-                    "remain", totalAmount.get() != null ? totalAmount.get().subtract(totalClaimed.getOrDefault(BigInteger.ZERO)) : BigInteger.ZERO,
-                    "opened", start <= time && (end == 0 || end > time)
+                    "id", _id,
+                    "token", airdrop.token,
+                    "start", airdrop.startTime,
+                    "end", airdrop.endTime,
+                    "total", airdrop.totalAmount,
+                    "claimed", totalClaimed.getOrDefault(_id, BigInteger.ZERO),
+                    "remain", airdrop.totalAmount != null ? airdrop.totalAmount.subtract(totalClaimed.getOrDefault(_id, BigInteger.ZERO)) : BigInteger.ZERO
             );
         }
         return Map.of();
     }
 
     @External(readonly = true)
-    public boolean isClaimed(Address _address) {
-        return claimed.getOrDefault(_address, false);
+    public boolean isClaimed(int _id, Address _address) {
+        return claimed.at(_id).getOrDefault(_address, false);
     }
 
     @External(readonly = true)
-    public boolean isClaimable(Address _address, BigInteger _amount, byte[][] _proof) {
-        byte[] root = merkleRoot.get();
-        if(root != null) {
+    public boolean isClaimable(int _id, Address _address, BigInteger _amount, byte[][] _proof) {
+        Airdrop airdrop = airdrops.get(_id);
+        if(airdrop != null) {
             long time = Context.getBlockTimestamp();
-            if (startTime.get() <= time && (endTime.get() == 0 || endTime.get() > time))
-                return _verifyProof(merkleRoot.get(), _address, _amount, _proof);
+            if(airdrop.startTime <= time && (airdrop.endTime == 0 || airdrop.endTime > time))
+                return _verifyProof(airdrop.merkleRoot, _address, _amount, _proof);
         }
         return false;
+    }
+
+    @External(readonly = true)
+    public boolean isValidProof(byte[] _merkleRoot, byte[] _hash, byte[][] _proof) {
+        byte[] hash = _hash;
+        for(byte[] leaf : _proof) {
+            if(_compare(hash, leaf) <= 0) {
+                hash = _makeHash(hash, leaf);
+            } else {
+                hash = _makeHash(leaf, hash);
+            }
+        }
+
+        return _compare(hash, _merkleRoot) == 0;
     }
 
     @EventLog
     public void Deposited(Address _sender,  BigInteger _amount) {}
 
     @EventLog
-    public void MerkleRootRegistered(Address _token, byte[] _merkleRoot, long _startTime, long _endTime, String _totalAmount) {}
+    public void AirdropAdded(int _id, Address _token, byte[] _merkleRoot, long _startTime, long _endTime, String _totalAmount) {}
 
     @EventLog
-    public void Claimed(Address _token, Address _recipient, BigInteger _amount) {}
+    public void AirdropUpdated(int _id, long _startTime, long _endTime, String _totalAmount) {}
+
+    @EventLog
+    public void Claimed(int _id, Address _token, Address _recipient, BigInteger _amount) {}
 
     @EventLog
     public void Withdrawn(Address _token, Address _recipient, BigInteger _amount) {}

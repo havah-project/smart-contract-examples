@@ -35,7 +35,7 @@ public class MerkleAirdropScore extends Score {
         return new MerkleAirdropScore(score);
     }
 
-    public TransactionResult registerMerkleRoot(Wallet wallet, Address token, byte[] merkleRoot, BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
+    public TransactionResult addAirdrop(Wallet wallet, Address token, byte[] merkleRoot, BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
             throws IOException, ResultTimeoutException {
         RpcObject.Builder params = new RpcObject.Builder()
                 .put("_token", new RpcValue(token))
@@ -44,10 +44,21 @@ public class MerkleAirdropScore extends Score {
         if(endTime != null) params.put("_endTime", new RpcValue(endTime));
         if(totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
 
-        return invokeAndWaitResult(wallet, "registerMerkleRoot", params.build());
+        return invokeAndWaitResult(wallet, "addAirdrop", params.build());
     }
 
-    public TransactionResult claim(Wallet wallet,BigInteger amount, byte[][] proof)
+    public TransactionResult updateAirdrop(Wallet wallet, BigInteger id, BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
+            throws IOException, ResultTimeoutException {
+        RpcObject.Builder params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .put("_startTime", new RpcValue(startTime));
+        if(endTime != null) params.put("_endTime", new RpcValue(endTime));
+        if(totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
+
+        return invokeAndWaitResult(wallet, "updateAirdrop", params.build());
+    }
+
+    public TransactionResult claim(Wallet wallet, BigInteger id, BigInteger amount, byte[][] proof)
             throws IOException, ResultTimeoutException {
         RpcArray.Builder array = new RpcArray.Builder();
         for(byte[] leaf : proof) {
@@ -55,10 +66,29 @@ public class MerkleAirdropScore extends Score {
         }
 
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_amount", new RpcValue(amount))
-                .put("_proof", array.build()).build();
+                .put("_proof", array.build())
+                .build();
 
         return invokeAndWaitResult(wallet, "claim", params);
+    }
+
+    public TransactionResult giveaway(Wallet wallet, BigInteger id, Address recipient, BigInteger amount, byte[][] proof)
+            throws IOException, ResultTimeoutException {
+        RpcArray.Builder array = new RpcArray.Builder();
+        for(byte[] leaf : proof) {
+            array.add(new RpcValue(leaf));
+        }
+
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .put("_recipient", new RpcValue(recipient))
+                .put("_amount", new RpcValue(amount))
+                .put("_proof", array.build())
+                .build();
+
+        return invokeAndWaitResult(wallet, "giveaway", params);
     }
 
     public TransactionResult withdraw(Wallet wallet, Address token, BigInteger amount, Address recipient)
@@ -71,41 +101,69 @@ public class MerkleAirdropScore extends Score {
         return invokeAndWaitResult(wallet, "withdraw", params.build());
     }
 
-    public byte[] merkleRoot() throws IOException {
-        return call("merkleRoot", null).asByteArray();
+    public BigInteger lastId() throws IOException {
+        return call("lastId", null).asInteger();
     }
 
-    public Map info() throws IOException {
-        RpcObject obj = call("info", null).asObject();
+    public byte[] merkleRoot(BigInteger id) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .build();
+        return call("merkleRoot", params).asByteArray();
+    }
+
+    public Map info(BigInteger id) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .build();
+        RpcObject obj = call("info", params).asObject();
         return Map.of(
+                "id", obj.getItem("id").asInteger(),
                 "token", obj.getItem("token").asAddress(),
-                "start", obj.getItem("start").asInteger(),
-                "end", obj.getItem("end").asInteger(),
-                "total", obj.getItem("total").asInteger(),
-                "claimed", obj.getItem("claimed").asInteger(),
-                "remain", obj.getItem("remain").asInteger(),
-                "opened", obj.getItem("opened").asBoolean()
+                "start_time", obj.getItem("start_time").asInteger(),
+                "end_time", obj.getItem("end_time").asInteger(),
+                "total_amount", obj.getItem("total_amount").asInteger(),
+                "claimed_amount", obj.getItem("claimed_amount").asInteger(),
+                "left_amount", obj.getItem("left_amount").asInteger()
         );
     }
 
-    public boolean isClaimed(Address address) throws IOException {
+    public boolean isClaimed(BigInteger id, Address address) throws IOException {
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_address", new RpcValue(address))
                 .build();
         return call("isClaimed", params).asBoolean();
     }
 
-    public boolean isClaimable(Address address, BigInteger amount, byte[][] proof) throws IOException {
+    public boolean isClaimable(BigInteger id, Address address, BigInteger amount, byte[][] proof) throws IOException {
         RpcArray.Builder array = new RpcArray.Builder();
         for(byte[] leaf : proof) {
             array.add(new RpcValue(leaf));
         }
 
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_address", new RpcValue(address))
                 .put("_amount", new RpcValue(amount))
                 .put("_proof", array.build())
                 .build();
         return call("isClaimable", params).asBoolean();
+    }
+
+    public boolean isValidProof(byte[] merkleRoot, byte[] hash, byte[][] _proof)
+            throws IOException {
+        RpcArray.Builder array = new RpcArray.Builder();
+        for(byte[] leaf : _proof) {
+            array.add(new RpcValue(leaf));
+        }
+
+        RpcObject params = new RpcObject.Builder()
+                .put("_merkleRoot", new RpcValue(merkleRoot))
+                .put("_hash", new RpcValue(hash))
+                .put("_proof", array.build())
+                .build();
+
+        return call("isValidProof", params).asBoolean();
     }
 }

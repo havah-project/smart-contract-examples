@@ -36,34 +36,52 @@ public class LogFinder {
         throw new IOException("ensureDeposited failed.");
     }
 
-    public static void ensureMerkleRootRegistered(TransactionResult result, Address score, Address token,
-                                                  byte[] merkleRoot, BigInteger startTime, BigInteger endTime, String totalAmount)
+    public static void ensureAirdropAdded(TransactionResult result, Address score, BigInteger stage, Address token,
+                                          byte[] merkleRoot, BigInteger startTime, BigInteger endTime, String totalAmount)
             throws IOException {
-        TransactionResult.EventLog event = findEventLog(result, score, "MerkleRootRegistered(Address,bytes,int,int,str)");
+        TransactionResult.EventLog event = findEventLog(result, score, "AirdropAdded(int,Address,bytes,int,int,str)");
         if (event != null) {
-            Address _token = event.getData().get(0).asAddress();
-            byte[] _merkleRoot = event.getData().get(1).asByteArray();
-            BigInteger _startTime = event.getData().get(2).asInteger();
-            BigInteger _endTime = event.getData().get(3).asInteger();
-            String _totalAmount = event.getData().get(4).asString();
+            BigInteger _stage = event.getData().get(0).asInteger();
+            Address _token = event.getData().get(1).asAddress();
+            byte[] _merkleRoot = event.getData().get(2).asByteArray();
+            BigInteger _startTime = event.getData().get(3).asInteger();
+            BigInteger _endTime = event.getData().get(4).asInteger();
+            String _totalAmount = event.getData().get(5).asString();
 
-            if (token.equals(_token) && Arrays.equals(merkleRoot, _merkleRoot) && startTime.equals(_startTime)
-                    && endTime.equals(_endTime) && totalAmount.equals(_totalAmount)) {
+            if (stage.equals(_stage) && token.equals(_token) && Arrays.equals(merkleRoot, _merkleRoot)
+                    && startTime.equals(_startTime) && endTime.equals(_endTime) && totalAmount.equals(_totalAmount)) {
                 return; // ensured
             }
         }
-        throw new IOException("ensureMerkleRootRegistered failed.");
+        throw new IOException("ensureAirdropAdded failed.");
     }
 
-    public static void ensureClaimed(TransactionResult result, Address score, Address token, Address recipient,
-                                     BigInteger amount) throws IOException {
-        TransactionResult.EventLog event = findEventLog(result, score, "Claimed(Address,Address,int)");
+    public static void ensureAirdropUpdated(TransactionResult result, Address score, BigInteger stage,
+                                            BigInteger startTime, BigInteger endTime, String totalAmount) throws IOException {
+        TransactionResult.EventLog event = findEventLog(result, score, "AirdropUpdated(int,int,int,str)");
         if (event != null) {
-            Address _token = event.getData().get(0).asAddress();
-            Address _recipient = event.getData().get(1).asAddress();
-            BigInteger _amount = event.getData().get(2).asInteger();
+            BigInteger _stage = event.getData().get(0).asInteger();
+            BigInteger _startTime = event.getData().get(1).asInteger();
+            BigInteger _endTime = event.getData().get(2).asInteger();
+            String _totalAmount = event.getData().get(3).asString();
 
-            if (token.equals(_token) && recipient.equals(_recipient) && amount.equals(_amount)) {
+            if (stage.equals(_stage) && startTime.equals(_startTime) && endTime.equals(_endTime) && totalAmount.equals(_totalAmount)) {
+                return; // ensured
+            }
+        }
+        throw new IOException("ensureAirdropUpdated failed.");
+    }
+
+    public static void ensureClaimed(TransactionResult result, Address score, BigInteger stage, Address token, Address recipient,
+                                     BigInteger amount) throws IOException {
+        TransactionResult.EventLog event = findEventLog(result, score, "Claimed(int,Address,Address,int)");
+        if (event != null) {
+            BigInteger _stage = event.getData().get(0).asInteger();
+            Address _token = event.getData().get(1).asAddress();
+            Address _recipient = event.getData().get(2).asAddress();
+            BigInteger _amount = event.getData().get(3).asInteger();
+
+            if (stage.equals(_stage) && token.equals(_token) && recipient.equals(_recipient) && amount.equals(_amount)) {
                 return; // ensured
             }
         }
@@ -71,7 +89,7 @@ public class LogFinder {
     }
 
     public static void ensureWithdrawn(TransactionResult result, Address score, Address token,
-                                      Address recipient, BigInteger amount) throws IOException {
+                                       Address recipient, BigInteger amount) throws IOException {
         TransactionResult.EventLog event = findEventLog(result, score, "Withdrawn(Address,Address,int)");
         if (event != null) {
             Address _token = event.getData().get(0).asAddress();
