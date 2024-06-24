@@ -14,10 +14,10 @@ public class VestingSchedule {
     long startTime;
     long endTime;
     long timeInterval;
-    int[] month;
-    int[] day;
-    int[] weekday;
-    int[] hour;
+    int month;
+    int day;
+    int weekday;
+    int hour;
 
     public VestingScheduleType getType() {
         return type;
@@ -59,123 +59,64 @@ public class VestingSchedule {
         this.timeInterval = timeInterval;
     }
 
-    public int[] getMonth() {
+    public int getMonth() {
         return month;
     }
 
-    public void setMonth(int[] month) {
-        this.month = month.clone();
+    public void setMonth(int month) {
+        this.month = month;
     }
 
-    public int[] getDay() {
+    public int getDay() {
         return day;
     }
 
-    public void setDay(int[] day) {
-        this.day = day.clone();
+    public void setDay(int day) {
+        this.day = day;
     }
 
-    public int[] getWeekday() {
+    public int getWeekday() {
         return weekday;
     }
 
-    public void setWeekday(int[] weekday) {
-        this.weekday = weekday.clone();
+    public void setWeekday(int weekday) {
+        this.weekday = weekday;
     }
 
-    public int[] getHour() {
+    public int getHour() {
         return hour;
     }
 
-    public void setHour(int[] hour) {
-        this.hour = hour.clone();
+    public void setHour(int hour) {
+        this.hour = hour;
     }
 
     public static void writeObject(ObjectWriter w, VestingSchedule v) {
-        int size = 6;
-        if(v.month != null) size += v.month.length;
-        if(v.day != null) size += v.day.length;
-        if(v.weekday != null) size += v.weekday.length;
-        if(v.hour != null) size += v.hour.length;
-        w.beginList(size);
+        w.beginList(9);
         w.write(v.type);
         w.write(v.token);
         w.write(v.startTime);
         w.write(v.endTime);
         w.write(v.timeInterval);
-
-        if(v.month != null) {
-            w.write(v.month.length);
-            for (int i = 0; i < v.month.length; i++)
-                w.write(v.month[i]);
-        } else w.write(0);
-
-        if(v.day != null) {
-            w.write(v.day.length);
-            for (int i = 0; i < v.day.length; i++)
-                w.write(v.day[i]);
-        } else w.write(0);
-
-        if(v.weekday != null) {
-            w.write(v.weekday.length);
-            for(int i=0; i<v.weekday.length; i++)
-                w.write(v.weekday[i]);
-        } else w.write(0);
-
-        if(v.hour != null) {
-            w.write(v.hour.length);
-            for (int i = 0; i < v.hour.length; i++)
-                w.write(v.hour[i]);
-        } else w.write(0);
-
+        w.write(v.month);
+        w.write(v.day);
+        w.write(v.weekday);
+        w.write(v.hour);
         w.end();
     }
 
     public static VestingSchedule readObject(ObjectReader r) {
         r.beginList();
         VestingSchedule v = new VestingSchedule();
-//        v.setStyle(VestingScheduleStyle.valueOf(r.readString()));
         v.setType(r.read(VestingScheduleType.class));
         v.setToken(r.readAddress());
         v.setStartTime(r.readLong());
         v.setEndTime(r.readLong());
         v.setTimeInterval(r.readLong());
-        int count = r.readInt();
-        if(count > 0) {
-            int[] month = new int[count];
-            for (int i = 0; i < count; i++) {
-                month[i] = r.readInt();
-            }
-            v.setMonth(month);
-        }
-
-        count = r.readInt();
-        if(count > 0) {
-            int[] day = new int[count];
-            for (int i = 0; i < count; i++) {
-                day[i] = r.readInt();
-            }
-            v.setDay(day);
-        }
-
-        count = r.readInt();
-        if(count > 0) {
-            int[] weekday = new int[count];
-            for (int i = 0; i < count; i++) {
-                weekday[i] = r.readInt();
-            }
-            v.setWeekday(weekday);
-        }
-
-        count = r.readInt();
-        if(count > 0) {
-            int[] hour = new int[count];
-            for (int i = 0; i < count; i++) {
-                hour[i] = r.readInt();
-            }
-            v.setHour(hour);
-        }
-
+        v.setMonth(r.readInt());
+        v.setDay(r.readInt());
+        v.setWeekday(r.readInt());
+        v.setHour(r.readInt());
         r.end();
         return v;
     }
@@ -224,12 +165,11 @@ public class VestingSchedule {
                 long curDt = startDt;
                 while (true) {
                     long dayTime = curDt * Datetime.ONE_DAY;
-                    for(int h : hour) {
-                        long cur = dayTime + (h * Datetime.HOUR);
-                        if(cur < startTime) continue;
-                        if(cur > endTime) break;
-                        list.add(cur);
-                    }
+                    long cur = dayTime + (hour * Datetime.HOUR);
+                    if(cur < startTime) continue;
+                    if(cur > endTime) break;
+                    list.add(cur);
+
                     curDt++;
                     if(curDt > endDt) break;
                 }
@@ -243,13 +183,11 @@ public class VestingSchedule {
                 while (true) {
                     long dayTime = curDt * Datetime.ONE_DAY;
                     int day = Datetime.getWeek(dayTime);
-                    if(binarySearch(weekday, 0, weekday.length, day) > -1) {
-                        for (int h : hour) {
-                            long cur = dayTime + (h * Datetime.HOUR);
-                            if (cur < startTime) continue;
-                            if (cur > endTime) break;
-                            list.add(cur);
-                        }
+                    if(weekday == day) {
+                        long cur = dayTime + (hour * Datetime.HOUR);
+                        if (cur < startTime) continue;
+                        if (cur > endTime) break;
+                        list.add(cur);
                     }
                     curDt++;
                     if(curDt > endDt) break;
@@ -268,22 +206,15 @@ public class VestingSchedule {
                 long endMonth = info[1];
                 while (true) {
                     long monthday = Datetime.getMonthDay(year, month);
-                    for(int d : day) {
-                        if(d <= 0) {
-                            if (StrictMath.abs(d) > monthday) continue;
-                            // 말일 기준 -값 만큼 앞의 날
-                            d = (int) (monthday - (d * -1));
-                        } else if (d > monthday)
-                            continue;
-                        d -= 1;
-                        long dayTime = monthTime + (d * Datetime.ONE_DAY);
-                        for (int h : hour) {
-                            long cur = dayTime + (h * Datetime.HOUR);
-                            if (cur < startTime) continue;
+                    if (day <= monthday) {
+                        long dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
+                        long cur = dayTime + (hour * Datetime.HOUR);
+                        if (cur >= startTime) {
                             if (cur > endTime) break;
                             list.add(cur);
                         }
                     }
+
                     monthTime += monthday * Datetime.ONE_DAY;
                     month++;
                     if(month > 12) {
@@ -304,26 +235,17 @@ public class VestingSchedule {
                 info = Datetime.getYearInfo(endTime);
                 long endYear = info[0];
                 while (true) {
-                    for(int m : month) {
-                        long monthday = Datetime.getMonthDay(year, m);
-                        long monthTime = yearTime + Datetime.getMonthAccTime(year, m - 1);
-                        for (int d : day) {
-                            if (d <= 0) {
-                                if (StrictMath.abs(d) > monthday) continue;
-                                // 말일 기준 -값 만큼 앞의 날
-                                d = (int) (monthday - (d * -1));
-                            } else if (d > monthday)
-                                continue;
-                            d -= 1;
-                            long dayTime = monthTime + (d * Datetime.ONE_DAY);
-                            for (int h : hour) {
-                                long cur = dayTime + (h * Datetime.HOUR);
-                                if (cur < startTime) continue;
-                                if (cur > endTime) break;
-                                list.add(cur);
-                            }
+                    long monthday = Datetime.getMonthDay(year, month);
+                    long monthTime = yearTime + Datetime.getMonthAccTime(year, month - 1);
+                    if (day <= monthday) {
+                        long dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
+                        long cur = dayTime + (hour * Datetime.HOUR);
+                        if (cur >= startTime) {
+                            if (cur > endTime) break;
+                            list.add(cur);
                         }
                     }
+
                     yearTime += (Datetime.isLeapYear(year) ? Datetime.LEAF_YEAR : Datetime.NORMAL_YEAR);
                     year++;
                     if(endYear < year)
@@ -356,10 +278,10 @@ public class VestingSchedule {
                 "startTime", startTime,
                 "endTime", endTime,
                 "timeInterval", timeInterval,
-                "month", _getSafeArray2String(month),
-                "day", _getSafeArray2String(day),
-                "weekday", _getSafeArray2String(weekday),
-                "hour", _getSafeArray2String(hour)
+                "month", month,
+                "day", day,
+                "weekday", weekday,
+                "hour", hour
         );
     }
 }

@@ -52,23 +52,23 @@ public class Vesting {
             _require(start < end, "the start_time must be less than the end_time");
     }
 
-    protected void _checkScheduleParams4Type(VestingScheduleType type, @Optional int[] month, @Optional int[] day,
-                                             @Optional int[] weekday, @Optional int[] hour) {
+    protected void _checkScheduleParams4Type(VestingScheduleType type, @Optional int month, @Optional int day,
+                                             @Optional int weekday, @Optional int hour) {
         switch (type) {
             case Daily:
             case Weekly:
             case Monthly:
             case Yearly:
-                _require(hour != null && hour.length > 0, "must have a least 1 item of hour list");
+                _require(hour > -1 && hour < 24, "must have a hour");
         }
         switch (type) {
             case Weekly:
-                _require(weekday != null && weekday.length > 0, "must have a least 1 item of weekday list");
+                _require(weekday > -1 && weekday < 7, "must have a weekday");
                 break;
             case Yearly:
-                _require(month != null && month.length > 0, "must have a least 1 item of month list");
+                _require(month > -1 && month < 13, "must have a month");
             case Monthly:
-                _require(day != null && day.length > 0, "must have a least 1 item of day list");
+                _require(day > -1 && day < 32, "must have a day");
         }
     }
 
@@ -94,19 +94,6 @@ public class Vesting {
         }
     }
 
-    protected String _getSafeArray2String(int[] arr) {
-        if(arr == null) return "";
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        sb.append(arr[0]);
-        for(int i=1; i<arr.length; i++) {
-            sb.append(",");
-            sb.append(arr[i]);
-        }
-        sb.append("]");
-        return sb.toString();
-    }
-
     protected BigInteger _totalAmountFrom(VestingScheduleType style, int count, AccountInfo account) {
         _require(account.getEachAmount().signum() > 0 || account.getTotalAmount().signum() > 0, "an account must have each_amount or total_amount");
         if(account.getEachAmount().signum() > 0) {
@@ -124,25 +111,25 @@ public class Vesting {
     @External
     public void registerOnetimeVesting(Address _token, long _startTime, AccountInfo[] _accounts) {
         registerConditionalVesting(0, _token, _startTime, 0, 0, _accounts,
-                null, null, null, null);
+                -1, -1, -1, -1);
     }
 
     @External
     public void registerLinearVesting(Address _token, long _startTime, long _endTime, AccountInfo[] _accounts) {
         registerConditionalVesting(1, _token, _startTime, _endTime, 0, _accounts,
-                null, null, null, null);
+                -1, -1, -1, -1);
     }
 
     @External
     public void registerPeriodicVesting(Address _token, long _startTime, long _endTime, long _timeInterval, AccountInfo[] _accounts) {
         registerConditionalVesting(2, _token, _startTime, _endTime, _timeInterval, _accounts,
-                null, null, null, null);
+                -1, -1, -1, -1);
     }
 
     @External
     public void registerConditionalVesting(int _type, Address _token, long _startTime, long _endTime, long _timeInterval,
-                                           AccountInfo[] _accounts, @Optional int[] _month, @Optional int[] _day,
-                                           @Optional int[] _weekday, @Optional int[] _hour) {
+                                           AccountInfo[] _accounts, int _month, int _day,
+                                           int _weekday, int _hour) {
         _onlyOwner();
         VestingScheduleType type = VestingScheduleType.Onetime;
         switch (_type) {
@@ -177,22 +164,11 @@ public class Vesting {
         schedule.setStartTime(_startTime);
         schedule.setEndTime(_endTime);
         schedule.setTimeInterval(_timeInterval);
-        if(_month != null) {
-            _requireValidDate(_month, 1, 12);
-            schedule.setMonth(_month);
-        }
-        if(_day != null) {
-            _requireValidDate(_day, 1, 31);
-            schedule.setDay(_day);
-        }
-        if(_weekday != null) {
-            _requireValidDate(_weekday, 0, 6);
-            schedule.setWeekday(_weekday);
-        }
-        if(_hour != null) {
-            _requireValidDate(_hour, 0, 23);
-            schedule.setHour(_hour);
-        }
+        schedule.setMonth(_month);
+        schedule.setDay(_day);
+        schedule.setWeekday(_weekday);
+        schedule.setHour(_hour);
+
         int id = lastId() + 1;
         vestingId.set(id);
         vestingSchedule.set(id, schedule);
@@ -206,10 +182,12 @@ public class Vesting {
         BigInteger total = BigInteger.ZERO;
         int idx = accountInfoCount.getOrDefault(id, 0);
         for(AccountInfo account : _accounts) {
+            _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
+
             BigInteger accountTotal = _totalAmountFrom(type, vestingTime.size(), account);
             total = total.add(accountTotal);
             account.setTotalAmount(accountTotal);
-            _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
+
             Address address = account.getAddress();
             accountInfo.at(id).set(address, account);
             idxAccountDict.at(id).set(idx, address);
@@ -399,10 +377,10 @@ public class Vesting {
                     "startTime", schedule.startTime,
                     "endTime", schedule.endTime,
                     "timeInterval", schedule.timeInterval,
-                    "month", _getSafeArray2String(schedule.month),
-                    "day", _getSafeArray2String(schedule.day),
-                    "weekday", _getSafeArray2String(schedule.weekday),
-                    "hour", _getSafeArray2String(schedule.hour),
+                    "month", schedule.month,
+                    "day", schedule.day,
+                    "weekday", schedule.weekday,
+                    "hour", schedule.hour,
                     "totalAmount", totalAmount.getOrDefault(_id, BigInteger.ZERO),
                     "totalClaimed", totalClaimed.getOrDefault(_id, BigInteger.ZERO)
             );

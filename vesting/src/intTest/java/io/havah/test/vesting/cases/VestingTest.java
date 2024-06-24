@@ -111,7 +111,7 @@ public class VestingTest extends TestBase {
     }
 
     protected void _registerConditionalVesting(VestingScore score, Wallet wallet, BigInteger type,
-                                               BigInteger[] month, BigInteger[] day, BigInteger[] weekday, BigInteger[] hour,
+                                               BigInteger month, BigInteger day, BigInteger weekday, BigInteger hour,
                                                Address token, BigInteger startTime, BigInteger endTime, BigInteger intervalTime,
                                                List accounts, boolean success) throws IOException, ResultTimeoutException {
         TransactionResult result = score.registerConditionalVesting(wallet, type, token, startTime, endTime, intervalTime, accounts, month, day, weekday, hour);
@@ -292,11 +292,12 @@ public class VestingTest extends TestBase {
                 "totalAmount", BigInteger.ZERO
         ));
 
-        BigInteger[] hour = new BigInteger[] { BigInteger.valueOf(24) };
-        _registerConditionalVesting(vesting, govWallet, DAYILY, null, null, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        BigInteger hour = BigInteger.valueOf(24);
+        BigInteger nullVal = BigInteger.valueOf(-1);
+        _registerConditionalVesting(vesting, govWallet, DAYILY, nullVal, nullVal, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
 
-        hour = new BigInteger[] { BigInteger.valueOf(13) };
-        _registerConditionalVesting(vesting, govWallet, DAYILY, null, null, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        hour = BigInteger.valueOf(13);
+        _registerConditionalVesting(vesting, govWallet, DAYILY, nullVal, nullVal, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
         BigInteger id = vesting.lastId();
 
@@ -328,10 +329,11 @@ public class VestingTest extends TestBase {
                 "totalAmount", BigInteger.ZERO
         ));
 
-        BigInteger[] hour = new BigInteger[] { BigInteger.valueOf(9), BigInteger.valueOf(16) };
-        BigInteger[] weekday = new BigInteger[] { BigInteger.valueOf(6) };
+        BigInteger hour = BigInteger.valueOf(9);
+        BigInteger weekday = BigInteger.valueOf(6);
+        BigInteger nullVal = BigInteger.valueOf(-1);
 
-        _registerConditionalVesting(vesting, govWallet, WEEKLY, null, null, weekday, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        _registerConditionalVesting(vesting, govWallet, WEEKLY, nullVal, nullVal, weekday, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
         BigInteger id = vesting.lastId();
         LOG.info("info : " + vesting.info(id));
         LOG.info("vestedTimes" + vesting.vestingTimes(id));
@@ -361,12 +363,14 @@ public class VestingTest extends TestBase {
                 "totalAmount", BigInteger.ZERO
         ));
 
-        BigInteger[] hour = new BigInteger[] { BigInteger.valueOf(9) };
-        BigInteger[] day = new BigInteger[] { BigInteger.valueOf(36) };
-        _registerConditionalVesting(vesting, govWallet, MONTHLY, null, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        BigInteger hour = BigInteger.valueOf(9);
+        BigInteger day = BigInteger.valueOf(36);
+        BigInteger nullVal = BigInteger.valueOf(-1);
 
-        day = new BigInteger[] { BigInteger.valueOf(1) };
-        _registerConditionalVesting(vesting, govWallet, MONTHLY, null, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        _registerConditionalVesting(vesting, govWallet, MONTHLY, nullVal, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+
+        day = BigInteger.valueOf(1);
+        _registerConditionalVesting(vesting, govWallet, MONTHLY, nullVal, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
         BigInteger id = vesting.lastId();
 
@@ -398,19 +402,20 @@ public class VestingTest extends TestBase {
                 "totalAmount", BigInteger.ZERO
         ));
 
-        BigInteger[] hour = new BigInteger[] { BigInteger.valueOf(9)/*, BigInteger.valueOf(16)*/ };
-        BigInteger[] day = new BigInteger[] { BigInteger.valueOf(1)/*, BigInteger.valueOf(-1), BigInteger.valueOf(0)*/ };
-        BigInteger[] month = new BigInteger[] { BigInteger.valueOf(2), BigInteger.valueOf(8), BigInteger.valueOf(13) };
+        BigInteger hour = BigInteger.valueOf(9);
+        BigInteger day = BigInteger.valueOf(1);
+        BigInteger month = BigInteger.valueOf(13);
+        BigInteger nullVal = BigInteger.valueOf(-1);
 
-        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
 
-        month = new BigInteger[] { BigInteger.valueOf(2), BigInteger.valueOf(8), BigInteger.valueOf(12) };
-        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        month = BigInteger.valueOf(2);
+        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
-        BigInteger id = vesting.lastId();
-
-        LOG.info("info : " + vesting.info(id));
-        LOG.info("vestedTimes" + vesting.vestingTimes(id));
+//        BigInteger id = vesting.lastId();
+//
+//        LOG.info("info : " + vesting.info(id));
+//        LOG.info("vestedTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }

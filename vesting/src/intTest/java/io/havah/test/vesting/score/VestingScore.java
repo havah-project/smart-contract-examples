@@ -126,8 +126,8 @@ public class VestingScore  extends Score {
 
     public TransactionResult registerConditionalVesting(Wallet wallet, BigInteger type, Address token,
                                                         BigInteger startTime, BigInteger endTime, BigInteger timeInterval,
-                                                        List accounts, BigInteger[] month, BigInteger[] day,
-                                                        BigInteger[] weekday, BigInteger[] hour)
+                                                        List accounts, BigInteger month, BigInteger day,
+                                                        BigInteger weekday, BigInteger hour)
             throws IOException, ResultTimeoutException {
         RpcArray.Builder arr = new RpcArray.Builder();
         for(int i=0; i<accounts.size(); i++) {
@@ -140,47 +140,20 @@ public class VestingScore  extends Score {
             );
         }
 
-        RpcObject.Builder params = new RpcObject.Builder()
+        RpcObject params = new RpcObject.Builder()
                 .put("_type", new RpcValue(type))
                 .put("_token", new RpcValue(token))
                 .put("_startTime", new RpcValue(startTime))
                 .put("_endTime", new RpcValue(endTime))
                 .put("_timeInterval", new RpcValue(timeInterval))
-                .put("_accounts", arr.build());
+                .put("_accounts", arr.build())
+                .put("_month", new RpcValue(month))
+                .put("_day", new RpcValue(day))
+                .put("_weekday", new RpcValue(weekday))
+                .put("_hour", new RpcValue(hour))
+                .build();
 
-        if(month != null) {
-            arr = new RpcArray.Builder();
-            for(BigInteger m : month) {
-                arr.add(new RpcValue(m));
-            }
-            params.put("_month", arr.build());
-        }
-
-        if(day != null) {
-            arr = new RpcArray.Builder();
-            for(BigInteger d : day) {
-                arr.add(new RpcValue(d));
-            }
-            params.put("_day", arr.build());
-        }
-
-        if(weekday != null) {
-            arr = new RpcArray.Builder();
-            for(BigInteger wd : weekday) {
-                arr.add(new RpcValue(wd));
-            }
-            params.put("_weekday", arr.build());
-        }
-
-        if(hour != null) {
-            arr = new RpcArray.Builder();
-            for(BigInteger h : hour) {
-                arr.add(new RpcValue(h));
-            }
-            params.put("_hour", arr.build());
-        }
-
-        return invokeAndWaitResult(wallet, "registerConditionalVesting", params.build());
+        return invokeAndWaitResult(wallet, "registerConditionalVesting", params);
     }
 
     public Map info(BigInteger id) throws IOException {
