@@ -166,10 +166,10 @@ public class VestingSchedule {
                 while (true) {
                     long dayTime = curDt * Datetime.ONE_DAY;
                     long cur = dayTime + (hour * Datetime.HOUR);
-                    if(cur < startTime) continue;
-                    if(cur > endTime) break;
-                    list.add(cur);
-
+                    if(cur >= startTime) {
+                        if (cur > endTime) break;
+                        list.add(cur);
+                    }
                     curDt++;
                     if(curDt > endDt) break;
                 }
@@ -185,9 +185,10 @@ public class VestingSchedule {
                     int day = Datetime.getWeek(dayTime);
                     if(weekday == day) {
                         long cur = dayTime + (hour * Datetime.HOUR);
-                        if (cur < startTime) continue;
-                        if (cur > endTime) break;
-                        list.add(cur);
+                        if (cur >= startTime) {
+                            if (cur > endTime) break;
+                            list.add(cur);
+                        }
                     }
                     curDt++;
                     if(curDt > endDt) break;
