@@ -55,10 +55,10 @@ public class VestingTest extends TestBase {
             assertSuccess(txHandler.getResult(txHash));
         }
 
-//        LOG.info("deploy Vesting");
-//        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-//        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-//        assertSuccess(txHandler.getResult(txHash));
+        LOG.info("deploy Vesting");
+        vesting = VestingScore.mustDeploy(txHandler, govWallet);
+        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
+        assertSuccess(txHandler.getResult(txHash));
 
         hsp20token = SampleTokenScore.mustDeploy(txHandler, govWallet, BigInteger.valueOf(18), amount);
         assertSuccess(hsp20token.transfer(govWallet, vesting.getAddress(), amount));
@@ -122,8 +122,8 @@ public class VestingTest extends TestBase {
         }
     }
 
-    protected void _claim(VestingScore score, Wallet wallet, boolean success) throws IOException, ResultTimeoutException {
-        TransactionResult result = score.claim(wallet);
+    protected void _claim(VestingScore score, Wallet wallet, BigInteger id, boolean success) throws IOException, ResultTimeoutException {
+        TransactionResult result = score.claim(wallet, id);
         if(success) {
             assertSuccess(result);
         } else {
@@ -131,8 +131,8 @@ public class VestingTest extends TestBase {
         }
     }
 
-    protected void _addVestingAccounts(VestingScore score, Wallet wallet, List accounts, boolean success) throws IOException, ResultTimeoutException {
-        TransactionResult result = score.addVestingAccounts(wallet, accounts);
+    protected void _addVestingAccounts(VestingScore score, Wallet wallet, BigInteger id, List accounts, boolean success) throws IOException, ResultTimeoutException {
+        TransactionResult result = score.addVestingAccounts(wallet, id, accounts);
         if(success) {
             assertSuccess(result);
         } else {
@@ -140,8 +140,8 @@ public class VestingTest extends TestBase {
         }
     }
 
-    protected void _removeVestingAccounts(VestingScore score, Wallet wallet, Address[] accounts, boolean success) throws IOException, ResultTimeoutException {
-        TransactionResult result = score.removeVestingAccounts(wallet, accounts);
+    protected void _removeVestingAccounts(VestingScore score, Wallet wallet, BigInteger id, Address[] accounts, boolean success) throws IOException, ResultTimeoutException {
+        TransactionResult result = score.removeVestingAccounts(wallet, id, accounts);
         if(success) {
             assertSuccess(result);
         } else {
@@ -153,16 +153,11 @@ public class VestingTest extends TestBase {
     void registerOnetimeVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerOnetimeVestingTest");
 
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = time.add(BigInteger.valueOf(10 * 1_000_000L));
 
         LOG.info(">>> registerOnetimeVesting");
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
@@ -177,18 +172,20 @@ public class VestingTest extends TestBase {
         ));
         _registerOnetimeVesting(vesting, govWallet, ZERO_ADDRESS, startTime, account, false);
 
-        LOG.info("info : " + vesting.info());
-        BigInteger claimable = vesting.claimableAmount(owners[0].getAddress());
+        BigInteger id = vesting.lastId();
+
+        LOG.info("info : " + vesting.info(id));
+        BigInteger claimable = vesting.claimableAmount(id, owners[0].getAddress());
         LOG.info("claimableAmount : " + claimable);
         assertEquals(BigInteger.ZERO, claimable);
 
         _waitUtilTime(startTime);
 
-        claimable = vesting.claimableAmount(owners[0].getAddress());
+        claimable = vesting.claimableAmount(id, owners[0].getAddress());
         LOG.info("claimableAmount : " + claimable);
         assertEquals(amount, claimable);
 
-        _claim(vesting, owners[0], true);
+        _claim(vesting, owners[0], id, true);
 
         LOG.infoExiting();
     }
@@ -197,19 +194,10 @@ public class VestingTest extends TestBase {
     void registerLinearVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerLinearVestingTest");
 
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
-        hsp20token = SampleTokenScore.mustDeploy(txHandler, govWallet, BigInteger.valueOf(18), amount);
-        assertSuccess(hsp20token.transfer(govWallet, vesting.getAddress(), amount));
-        LOG.info("airdrop balanceOf : " + hsp20token.balanceOf(vesting.getAddress()));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = time;
         BigInteger endTime = time.add(BigInteger.valueOf(20 * 1_000_000L));
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -219,17 +207,19 @@ public class VestingTest extends TestBase {
         ));
         _registerLinearVesting(vesting, govWallet, hsp20token.getAddress(), startTime, endTime, account, true);
 
-        LOG.info("claimableAmount : " + vesting.claimableAmount(owners[0].getAddress()));
-        _waitUtilTime(time.add(BigInteger.valueOf(10 * 1_000_000L)));
-        LOG.info("claimableAmount : " + vesting.claimableAmount(owners[0].getAddress()));
+        BigInteger id = vesting.lastId();
 
-        _claim(vesting, owners[0], true);
+        LOG.info("claimableAmount : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        _waitUtilTime(time.add(BigInteger.valueOf(10 * 1_000_000L)));
+        LOG.info("claimableAmount : " + vesting.claimableAmount(id, owners[0].getAddress()));
+
+        _claim(vesting, owners[0], id, true);
 
         _waitUtilTime(endTime.add(BigInteger.valueOf(1_000_000L)));
-        LOG.info("claimableAmount : " + vesting.claimableAmount(owners[0].getAddress()));
+        LOG.info("claimableAmount : " + vesting.claimableAmount(id, owners[0].getAddress()));
 
-        _claim(vesting, owners[0], true);
-        LOG.info("claimableAmount : " + vesting.claimableAmount(owners[0].getAddress()));
+        _claim(vesting, owners[0], id, true);
+        LOG.info("claimableAmount : " + vesting.claimableAmount(id, owners[0].getAddress()));
 
         LOG.infoExiting();
     }
@@ -238,17 +228,11 @@ public class VestingTest extends TestBase {
     void registerPeriodicVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerPeriodicVestingTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(20 * 1_000_000L));
         BigInteger interval = BigInteger.valueOf(5 * 1_000_000L);
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -263,23 +247,25 @@ public class VestingTest extends TestBase {
         ));
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
-        _waitUtilTime(time.add(BigInteger.valueOf(10 * 1_000_000L)));
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        BigInteger id = vesting.lastId();
 
-        _claim(vesting, owners[0], true);
-        _claim(vesting, owners[1], true);
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
+        _waitUtilTime(time.add(BigInteger.valueOf(10 * 1_000_000L)));
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
+
+        _claim(vesting, owners[0], id, true);
+        _claim(vesting, owners[1], id, true);
 
         _waitUtilTime(endTime.add(BigInteger.valueOf(1_000_000L)));
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
-        _claim(vesting, owners[0], true);
-        _claim(vesting, owners[1], true);
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        _claim(vesting, owners[0], id, true);
+        _claim(vesting, owners[1], id, true);
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
         LOG.infoExiting();
     }
@@ -288,17 +274,11 @@ public class VestingTest extends TestBase {
     void registerDailyConditionalVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerDailyConditionalVestingTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 1));
         BigInteger interval = BigInteger.ZERO;
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -318,8 +298,10 @@ public class VestingTest extends TestBase {
         hour = new BigInteger[] { BigInteger.valueOf(13) };
         _registerConditionalVesting(vesting, govWallet, DAYILY, null, null, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
-        LOG.info("info : " + vesting.info());
-        LOG.info("vestingTimes" + vesting.vestingTimes());
+        BigInteger id = vesting.lastId();
+
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("vestingTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }
@@ -328,17 +310,11 @@ public class VestingTest extends TestBase {
     void registerWeeklyConditionalVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerWeeklyConditionalVestingTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 10));
         BigInteger interval = BigInteger.ZERO;
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -356,8 +332,9 @@ public class VestingTest extends TestBase {
         BigInteger[] weekday = new BigInteger[] { BigInteger.valueOf(6) };
 
         _registerConditionalVesting(vesting, govWallet, WEEKLY, null, null, weekday, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
-        LOG.info("info : " + vesting.info());
-        LOG.info("vestedTimes" + vesting.vestingTimes());
+        BigInteger id = vesting.lastId();
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("vestedTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }
@@ -366,17 +343,11 @@ public class VestingTest extends TestBase {
     void registerMonthlyConditionalVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerMonthlyConditionalVestingTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 35 * 7));
         BigInteger interval = BigInteger.ZERO;
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -396,8 +367,11 @@ public class VestingTest extends TestBase {
 
         day = new BigInteger[] { BigInteger.valueOf(1) };
         _registerConditionalVesting(vesting, govWallet, MONTHLY, null, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
-        LOG.info("info : " + vesting.info());
-        LOG.info("vestedTimes" + vesting.vestingTimes());
+
+        BigInteger id = vesting.lastId();
+
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("vestedTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }
@@ -406,17 +380,11 @@ public class VestingTest extends TestBase {
     void registerYearlyConditionalVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerYearlyConditionalVestingTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 368));
         BigInteger interval = BigInteger.ZERO;
-        amount = ICX.multiply(BigInteger.valueOf(2));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -438,8 +406,11 @@ public class VestingTest extends TestBase {
 
         month = new BigInteger[] { BigInteger.valueOf(2), BigInteger.valueOf(8), BigInteger.valueOf(12) };
         _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, null, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
-        LOG.info("info : " + vesting.info());
-        LOG.info("vestedTimes" + vesting.vestingTimes());
+
+        BigInteger id = vesting.lastId();
+
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("vestedTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }
@@ -448,16 +419,10 @@ public class VestingTest extends TestBase {
     void addRemoveAccountsTest() throws Exception {
         LOG.infoEntering("vesting", "removeAccountsTest");
 
-        LOG.info("deploy Vesting");
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        vesting = VestingScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(vesting.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = startTime.add(BigInteger.valueOf(60 * 1_000_000L));
         BigInteger interval = BigInteger.valueOf(10 * 1_000_000L);
-        amount = ICX.multiply(BigInteger.valueOf(3));
+        BigInteger amount = ICX.multiply(BigInteger.valueOf(3));
 
         List account = new ArrayList();
         account.add(Map.of(
@@ -472,38 +437,40 @@ public class VestingTest extends TestBase {
         ));
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        BigInteger id = vesting.lastId();
+
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
         _waitUtilTime(startTime.add(BigInteger.valueOf(11 * 1_000_000L)));
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
         LOG.info(">>> claim");
-        _claim(vesting, owners[0], true);
-        _claim(vesting, owners[1], true);
+        _claim(vesting, owners[0], id, true);
+        _claim(vesting, owners[1], id, true);
 
         _waitUtilTime(startTime.add(BigInteger.valueOf(30 * 1_000_000L)));
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[0].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
-        LOG.info("info : " + vesting.info());
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
+        LOG.info("info : " + vesting.info(id));
 
         LOG.info(">>> removeAccounts");
-        _removeVestingAccounts(vesting, govWallet, new Address[] { owners[0].getAddress()}, true);
+        _removeVestingAccounts(vesting, govWallet, id, new Address[] { owners[0].getAddress()}, true);
         LOG.info(">>> claim");
-        _claim(vesting, owners[0], false);
-        _claim(vesting, owners[1], true);
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        _claim(vesting, owners[0], id, false);
+        _claim(vesting, owners[1], id, true);
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
-        _addVestingAccounts(vesting, govWallet, List.of(Map.of(
+        _addVestingAccounts(vesting, govWallet, id, List.of(Map.of(
                 "address", owners[0].getAddress(),
                 "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         )), true);
 
         _waitUtilTime(startTime.add(BigInteger.valueOf(50 * 1_000_000L)));
-        LOG.info("info : " + vesting.info());
-        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(owners[1].getAddress()));
-        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(owners[1].getAddress()));
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[1].getAddress()));
+        LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
         LOG.infoExiting();
     }

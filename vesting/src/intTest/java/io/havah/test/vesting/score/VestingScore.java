@@ -37,9 +37,17 @@ public class VestingScore  extends Score {
         return new VestingScore(score);
     }
 
-    public List vestingTimes() throws IOException {
+    public BigInteger lastId() throws IOException {
+        return call("lastId", null).asInteger();
+    }
+
+    public List vestingTimes(BigInteger id) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .build();
+
         List list = new ArrayList();
-        RpcArray arr = call("vestingTimes", null).asArray();
+        RpcArray arr = call("vestingTimes", params).asArray();
         for(int i=0; i<arr.size(); i++) {
             list.add(arr.get(i).asInteger());
         }
@@ -175,8 +183,12 @@ public class VestingScore  extends Score {
         return invokeAndWaitResult(wallet, "registerConditionalVesting", params.build());
     }
 
-    public Map info() throws IOException {
-        RpcObject obj = call("info", null).asObject();
+    public Map info(BigInteger id) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .build();
+
+        RpcObject obj = call("info", params).asObject();
         return Map.of(
                 "type", obj.getItem("type").asString(),
                 "startTime", obj.getItem("startTime").asInteger(),
@@ -191,18 +203,22 @@ public class VestingScore  extends Score {
         );
     }
 
-    public TransactionResult claim(Wallet wallet) throws IOException, ResultTimeoutException {
-        return invokeAndWaitResult(wallet, "claim", null);
+    public TransactionResult claim(Wallet wallet, BigInteger id) throws IOException, ResultTimeoutException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
+                .build();
+        return invokeAndWaitResult(wallet, "claim", params);
     }
 
-    public BigInteger claimableAmount(Address address) throws IOException {
+    public BigInteger claimableAmount(BigInteger id, Address address) throws IOException {
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_address", new RpcValue(address))
                 .build();
         return call("claimableAmount", params).asInteger();
     }
 
-    public TransactionResult addVestingAccounts(Wallet wallet, List accounts) throws IOException, ResultTimeoutException {
+    public TransactionResult addVestingAccounts(Wallet wallet, BigInteger id, List accounts) throws IOException, ResultTimeoutException {
         RpcArray.Builder arr = new RpcArray.Builder();
         for(int i=0; i<accounts.size(); i++) {
             Map account = (Map)accounts.get(i);
@@ -214,18 +230,20 @@ public class VestingScore  extends Score {
             );
         }
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_accounts", arr.build())
                 .build();
 
         return invokeAndWaitResult(wallet, "addVestingAccounts", params);
     }
 
-    public TransactionResult removeVestingAccounts(Wallet wallet, Address[] accounts) throws IOException, ResultTimeoutException {
+    public TransactionResult removeVestingAccounts(Wallet wallet, BigInteger id, Address[] accounts) throws IOException, ResultTimeoutException {
         RpcArray.Builder arr = new RpcArray.Builder();
         for(int i=0; i<accounts.length; i++) {
             arr.add(new RpcValue(accounts[i]));
         }
         RpcObject params = new RpcObject.Builder()
+                .put("_id", new RpcValue(id))
                 .put("_accounts", arr.build())
                 .build();
 

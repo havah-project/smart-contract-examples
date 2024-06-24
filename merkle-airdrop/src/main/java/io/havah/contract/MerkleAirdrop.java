@@ -10,13 +10,13 @@ import java.math.BigInteger;
 import java.util.Map;
 
 public class MerkleAirdrop {
-    static final Address ZERO_ADDRESS = Address.fromString("hx0000000000000000000000000000000000000000");
-    static final VarDB<String> name = Context.newVarDB("name", String.class);
-    static final VarDB<Address> admin = Context.newVarDB("score_admin", Address.class);
-    static final DictDB<Integer, Airdrop> airdrops = Context.newDictDB("airdrops", Airdrop.class);
-    static final VarDB<Integer> lastId = Context.newVarDB("last_id", Integer.class);
-    static final BranchDB<Integer, DictDB<Address, Boolean>> claimed = Context.newBranchDB("claimed", Boolean.class);
-    static final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
+    protected static final Address ZERO_ADDRESS = Address.fromString("hx0000000000000000000000000000000000000000");
+    protected static final VarDB<String> name = Context.newVarDB("name", String.class);
+    protected static final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
+    protected static final DictDB<Integer, Airdrop> airdrops = Context.newDictDB("airdrops", Airdrop.class);
+    protected static final VarDB<Integer> lastId = Context.newVarDB("last_id", Integer.class);
+    protected static final BranchDB<Integer, DictDB<Address, Boolean>> claimed = Context.newBranchDB("claimed", Boolean.class);
+    protected static final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
 
     protected boolean _isCaller(Address address) {
         return Context.getCaller().equals(address);
