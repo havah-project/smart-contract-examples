@@ -124,10 +124,85 @@ public class VestingScore  extends Score {
         return invokeAndWaitResult(wallet, "registerPeriodicVesting", params);
     }
 
-    public TransactionResult registerConditionalVesting(Wallet wallet, BigInteger type, Address token,
-                                                        BigInteger startTime, BigInteger endTime, BigInteger timeInterval,
-                                                        List accounts, BigInteger month, BigInteger day,
-                                                        BigInteger weekday, BigInteger hour)
+    public TransactionResult registerDailyVesting(Wallet wallet, Address token, BigInteger startTime, BigInteger endTime,
+                                                     BigInteger hour, List accounts) throws IOException, ResultTimeoutException {
+        RpcArray.Builder arr = new RpcArray.Builder();
+        for(int i=0; i<accounts.size(); i++) {
+            Map account = (Map)accounts.get(i);
+            arr.add(new RpcObject.Builder()
+                    .put("address", new RpcValue((Address) account.get("address")))
+                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
+                    .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
+                    .build()
+            );
+        }
+
+        RpcObject params = new RpcObject.Builder()
+                .put("_token", new RpcValue(token))
+                .put("_startTime", new RpcValue(startTime))
+                .put("_endTime", new RpcValue(endTime))
+                .put("_hour", new RpcValue(hour))
+                .put("_accounts", arr.build())
+                .build();
+
+
+        return invokeAndWaitResult(wallet, "registerDailyVesting", params);
+    }
+
+    public TransactionResult registerWeeklyVesting(Wallet wallet, Address token, BigInteger startTime, BigInteger endTime,
+                                                  BigInteger weekday, BigInteger hour, List accounts) throws IOException, ResultTimeoutException {
+        RpcArray.Builder arr = new RpcArray.Builder();
+        for(int i=0; i<accounts.size(); i++) {
+            Map account = (Map)accounts.get(i);
+            arr.add(new RpcObject.Builder()
+                    .put("address", new RpcValue((Address) account.get("address")))
+                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
+                    .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
+                    .build()
+            );
+        }
+
+        RpcObject params = new RpcObject.Builder()
+                .put("_token", new RpcValue(token))
+                .put("_startTime", new RpcValue(startTime))
+                .put("_endTime", new RpcValue(endTime))
+                .put("_weekday", new RpcValue(weekday))
+                .put("_hour", new RpcValue(hour))
+                .put("_accounts", arr.build())
+                .build();
+
+
+        return invokeAndWaitResult(wallet, "registerWeeklyVesting", params);
+    }
+
+    public TransactionResult registerMonthlyVesting(Wallet wallet, Address token, BigInteger startTime, BigInteger endTime,
+                                                   BigInteger day, BigInteger hour, List accounts) throws IOException, ResultTimeoutException {
+        RpcArray.Builder arr = new RpcArray.Builder();
+        for(int i=0; i<accounts.size(); i++) {
+            Map account = (Map)accounts.get(i);
+            arr.add(new RpcObject.Builder()
+                    .put("address", new RpcValue((Address) account.get("address")))
+                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
+                    .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
+                    .build()
+            );
+        }
+
+        RpcObject params = new RpcObject.Builder()
+                .put("_token", new RpcValue(token))
+                .put("_startTime", new RpcValue(startTime))
+                .put("_endTime", new RpcValue(endTime))
+                .put("_day", new RpcValue(day))
+                .put("_hour", new RpcValue(hour))
+                .put("_accounts", arr.build())
+                .build();
+
+
+        return invokeAndWaitResult(wallet, "registerMonthlyVesting", params);
+    }
+
+    public TransactionResult registerYearlyVesting(Wallet wallet, Address token, BigInteger startTime, BigInteger endTime,
+                                                   BigInteger month, BigInteger day, BigInteger hour, List accounts)
             throws IOException, ResultTimeoutException {
         RpcArray.Builder arr = new RpcArray.Builder();
         for(int i=0; i<accounts.size(); i++) {
@@ -141,19 +216,17 @@ public class VestingScore  extends Score {
         }
 
         RpcObject params = new RpcObject.Builder()
-                .put("_type", new RpcValue(type))
                 .put("_token", new RpcValue(token))
                 .put("_startTime", new RpcValue(startTime))
                 .put("_endTime", new RpcValue(endTime))
-                .put("_timeInterval", new RpcValue(timeInterval))
-                .put("_accounts", arr.build())
                 .put("_month", new RpcValue(month))
                 .put("_day", new RpcValue(day))
-                .put("_weekday", new RpcValue(weekday))
                 .put("_hour", new RpcValue(hour))
+                .put("_accounts", arr.build())
                 .build();
 
-        return invokeAndWaitResult(wallet, "registerConditionalVesting", params);
+
+        return invokeAndWaitResult(wallet, "registerYearlyVesting", params);
     }
 
     public Map info(BigInteger id) throws IOException {

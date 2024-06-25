@@ -28,10 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class VestingTest extends TestBase {
     private static final Address ZERO_ADDRESS = new Address("hx0000000000000000000000000000000000000000");
-    private static final BigInteger DAYILY = BigInteger.valueOf(3);
-    private static final BigInteger WEEKLY = BigInteger.valueOf(4);
-    private static final BigInteger MONTHLY = BigInteger.valueOf(5);
-    private static final BigInteger YEARLY = BigInteger.valueOf(6);
     static final long ONE_DAY = 86400_000_000L;
     private static IconService iconService;
     private static TransactionHandler txHandler;
@@ -110,11 +106,43 @@ public class VestingTest extends TestBase {
         }
     }
 
-    protected void _registerConditionalVesting(VestingScore score, Wallet wallet, BigInteger type,
-                                               BigInteger month, BigInteger day, BigInteger weekday, BigInteger hour,
-                                               Address token, BigInteger startTime, BigInteger endTime, BigInteger intervalTime,
-                                               List accounts, boolean success) throws IOException, ResultTimeoutException {
-        TransactionResult result = score.registerConditionalVesting(wallet, type, token, startTime, endTime, intervalTime, accounts, month, day, weekday, hour);
+    protected void _registerDailyVesting(VestingScore score, Wallet wallet, Address token, BigInteger startTime,
+                                         BigInteger endTime, BigInteger hour, List accounts, boolean success)
+            throws IOException, ResultTimeoutException {
+        TransactionResult result = score.registerDailyVesting(wallet, token, startTime, endTime, hour, accounts);
+        if(success) {
+            assertSuccess(result);
+        } else {
+            assertFailure(result);
+        }
+    }
+
+    protected void _registerWeeklyVesting(VestingScore score, Wallet wallet, Address token, BigInteger startTime,
+                                         BigInteger endTime, BigInteger weekday, BigInteger hour, List accounts, boolean success)
+            throws IOException, ResultTimeoutException {
+        TransactionResult result = score.registerWeeklyVesting(wallet, token, startTime, endTime, weekday, hour, accounts);
+        if(success) {
+            assertSuccess(result);
+        } else {
+            assertFailure(result);
+        }
+    }
+
+    protected void _registerMonthlyVesting(VestingScore score, Wallet wallet, Address token, BigInteger startTime,
+                                          BigInteger endTime, BigInteger day, BigInteger hour, List accounts, boolean success)
+            throws IOException, ResultTimeoutException {
+        TransactionResult result = score.registerMonthlyVesting(wallet, token, startTime, endTime, day, hour, accounts);
+        if(success) {
+            assertSuccess(result);
+        } else {
+            assertFailure(result);
+        }
+    }
+
+    protected void _registerYearlyVesting(VestingScore score, Wallet wallet, Address token, BigInteger startTime,
+                                           BigInteger endTime, BigInteger month, BigInteger day, BigInteger hour, List accounts, boolean success)
+            throws IOException, ResultTimeoutException {
+        TransactionResult result = score.registerYearlyVesting(wallet, token, startTime, endTime, month, day, hour, accounts);
         if(success) {
             assertSuccess(result);
         } else {
@@ -271,13 +299,12 @@ public class VestingTest extends TestBase {
     }
 
     @Test
-    void registerDailyConditionalVestingTest() throws Exception {
-        LOG.infoEntering("vesting", "registerDailyConditionalVestingTest");
+    void registerDailyVestingTest() throws Exception {
+        LOG.infoEntering("vesting", "registerDailyVestingTest");
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 1));
-        BigInteger interval = BigInteger.ZERO;
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
@@ -293,11 +320,10 @@ public class VestingTest extends TestBase {
         ));
 
         BigInteger hour = BigInteger.valueOf(24);
-        BigInteger nullVal = BigInteger.valueOf(-1);
-        _registerConditionalVesting(vesting, govWallet, DAYILY, nullVal, nullVal, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        _registerDailyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, hour, account, false);
 
         hour = BigInteger.valueOf(13);
-        _registerConditionalVesting(vesting, govWallet, DAYILY, nullVal, nullVal, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        _registerDailyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, hour, account, true);
 
         BigInteger id = vesting.lastId();
 
@@ -308,13 +334,12 @@ public class VestingTest extends TestBase {
     }
 
     @Test
-    void registerWeeklyConditionalVestingTest() throws Exception {
-        LOG.infoEntering("vesting", "registerWeeklyConditionalVestingTest");
+    void registerWeeklyVestingTest() throws Exception {
+        LOG.infoEntering("vesting", "registerWeeklyVestingTest");
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 10));
-        BigInteger interval = BigInteger.ZERO;
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
@@ -331,9 +356,9 @@ public class VestingTest extends TestBase {
 
         BigInteger hour = BigInteger.valueOf(9);
         BigInteger weekday = BigInteger.valueOf(6);
-        BigInteger nullVal = BigInteger.valueOf(-1);
 
-        _registerConditionalVesting(vesting, govWallet, WEEKLY, nullVal, nullVal, weekday, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        _registerWeeklyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, weekday, hour, account, true);
+
         BigInteger id = vesting.lastId();
         LOG.info("info : " + vesting.info(id));
         LOG.info("vestedTimes" + vesting.vestingTimes(id));
@@ -342,13 +367,12 @@ public class VestingTest extends TestBase {
     }
 
     @Test
-    void registerMonthlyConditionalVestingTest() throws Exception {
-        LOG.infoEntering("vesting", "registerMonthlyConditionalVestingTest");
+    void registerMonthlyVestingTest() throws Exception {
+        LOG.infoEntering("vesting", "registerMonthlyVestingTest");
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 35 * 7));
-        BigInteger interval = BigInteger.ZERO;
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
@@ -365,12 +389,11 @@ public class VestingTest extends TestBase {
 
         BigInteger hour = BigInteger.valueOf(9);
         BigInteger day = BigInteger.valueOf(36);
-        BigInteger nullVal = BigInteger.valueOf(-1);
 
-        _registerConditionalVesting(vesting, govWallet, MONTHLY, nullVal, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        _registerMonthlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, day, hour, account, false);
 
-        day = BigInteger.valueOf(1);
-        _registerConditionalVesting(vesting, govWallet, MONTHLY, nullVal, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        day = BigInteger.valueOf(31);
+        _registerMonthlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, day, hour, account, true);
 
         BigInteger id = vesting.lastId();
 
@@ -381,13 +404,12 @@ public class VestingTest extends TestBase {
     }
 
     @Test
-    void registerYearlyConditionalVestingTest() throws Exception {
-        LOG.infoEntering("vesting", "registerYearlyConditionalVestingTest");
+    void registerYearlyVestingTest() throws Exception {
+        LOG.infoEntering("vesting", "registerYearlyVestingTest");
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
         BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 368));
-        BigInteger interval = BigInteger.ZERO;
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
@@ -403,19 +425,19 @@ public class VestingTest extends TestBase {
         ));
 
         BigInteger hour = BigInteger.valueOf(9);
-        BigInteger day = BigInteger.valueOf(1);
+        BigInteger day = BigInteger.valueOf(30);
         BigInteger month = BigInteger.valueOf(13);
         BigInteger nullVal = BigInteger.valueOf(-1);
 
-        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, false);
+        _registerYearlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, month, day, hour, account, false);
 
         month = BigInteger.valueOf(2);
-        _registerConditionalVesting(vesting, govWallet, YEARLY, month, day, nullVal, hour, ZERO_ADDRESS, startTime, endTime, interval, account, true);
+        _registerYearlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, month, day, hour, account, true);
 
-//        BigInteger id = vesting.lastId();
-//
-//        LOG.info("info : " + vesting.info(id));
-//        LOG.info("vestedTimes" + vesting.vestingTimes(id));
+        BigInteger id = vesting.lastId();
+
+        LOG.info("info : " + vesting.info(id));
+        LOG.info("vestedTimes" + vesting.vestingTimes(id));
 
         LOG.infoExiting();
     }

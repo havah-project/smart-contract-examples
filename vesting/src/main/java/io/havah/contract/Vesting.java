@@ -40,12 +40,6 @@ public class Vesting {
         _require(_isCaller(Context.getOwner()), "Only owner can call this method");
     }
 
-    protected void _requireValidDate(int[] array, int start, int end) {
-        for(int i : array) {
-            Context.require(start <= i && i <= end, "invalid schedule");
-        }
-    }
-
     protected void _checkStartEndTime(VestingScheduleType type, long start, long end) {
         _require(start > Datetime.GENESIS_TIMESTAMP, "the start_time must be after 2024.01.01 00:00(UTC)");
         if(type != VestingScheduleType.Onetime)
@@ -59,16 +53,16 @@ public class Vesting {
             case Weekly:
             case Monthly:
             case Yearly:
-                _require(hour > -1 && hour < 24, "must have a hour");
+                _require(hour > -1 && hour < 24, "must have a valid hour");
         }
         switch (type) {
             case Weekly:
-                _require(weekday > -1 && weekday < 7, "must have a weekday");
+                _require(weekday > -1 && weekday < 7, "must have a valid weekday");
                 break;
             case Yearly:
-                _require(month > -1 && month < 13, "must have a month");
+                _require(month > -1 && month < 13, "must have a valid month");
             case Monthly:
-                _require(day > -1 && day < 32, "must have a day");
+                _require(day > -1 && day < 32, "must have a valid day");
         }
     }
 
@@ -110,64 +104,63 @@ public class Vesting {
 
     @External
     public void registerOnetimeVesting(Address _token, long _startTime, AccountInfo[] _accounts) {
-        registerConditionalVesting(0, _token, _startTime, 0, 0, _accounts,
+        _registerConditionalVesting(VestingScheduleType.Onetime, _token, _startTime, 0, 0, _accounts,
                 -1, -1, -1, -1);
     }
 
     @External
     public void registerLinearVesting(Address _token, long _startTime, long _endTime, AccountInfo[] _accounts) {
-        registerConditionalVesting(1, _token, _startTime, _endTime, 0, _accounts,
+        _registerConditionalVesting(VestingScheduleType.Linear, _token, _startTime, _endTime, 0, _accounts,
                 -1, -1, -1, -1);
     }
 
     @External
     public void registerPeriodicVesting(Address _token, long _startTime, long _endTime, long _timeInterval, AccountInfo[] _accounts) {
-        registerConditionalVesting(2, _token, _startTime, _endTime, _timeInterval, _accounts,
+        _registerConditionalVesting(VestingScheduleType.Periodic, _token, _startTime, _endTime, _timeInterval, _accounts,
                 -1, -1, -1, -1);
     }
 
     @External
-    public void registerConditionalVesting(int _type, Address _token, long _startTime, long _endTime, long _timeInterval,
-                                           AccountInfo[] _accounts, int _month, int _day,
-                                           int _weekday, int _hour) {
+    public void registerDailyVesting(Address _token, long _startTime, long _endTime, int _hour, AccountInfo[] _accounts) {
+        _registerConditionalVesting(VestingScheduleType.Daily, _token, _startTime, _endTime, 0, _accounts,
+                -1, -1, -1, _hour);
+    }
+
+    @External
+    public void registerWeeklyVesting(Address _token, long _startTime, long _endTime, int _weekday, int _hour, AccountInfo[] _accounts) {
+        _registerConditionalVesting(VestingScheduleType.Weekly, _token, _startTime, _endTime, 0, _accounts,
+                -1, -1, _weekday, _hour);
+    }
+
+    @External
+    public void registerMonthlyVesting(Address _token, long _startTime, long _endTime, int _day, int _hour, AccountInfo[] _accounts) {
+        _registerConditionalVesting(VestingScheduleType.Monthly, _token, _startTime, _endTime, 0, _accounts,
+                -1, _day, -1, _hour);
+    }
+
+    @External
+    public void registerYearlyVesting(Address _token, long _startTime, long _endTime, int _month, int _day, int _hour, AccountInfo[] _accounts) {
+        _registerConditionalVesting(VestingScheduleType.Yearly, _token, _startTime, _endTime, 0, _accounts,
+                _month, _day, -1, _hour);
+    }
+
+    protected void _registerConditionalVesting(VestingScheduleType type, Address token, long startTime, long endTime, long timeInterval,
+                                               AccountInfo[] accounts, int month, int day,
+                                               int weekday, int hour) {
         _onlyOwner();
-        VestingScheduleType type = VestingScheduleType.Onetime;
-        switch (_type) {
-            case 0:
-                type = VestingScheduleType.Onetime;
-                break;
-            case 1:
-                type = VestingScheduleType.Linear;
-                break;
-            case 2:
-                type = VestingScheduleType.Periodic;
-                break;
-            case 3:
-                type = VestingScheduleType.Daily;
-                break;
-            case 4:
-                type = VestingScheduleType.Weekly;
-                break;
-            case 5:
-                type = VestingScheduleType.Monthly;
-                break;
-            case 6:
-                type = VestingScheduleType.Yearly;
-                break;
-        }
-        _checkStartEndTime(type, _startTime, _endTime);
-        _checkScheduleParams4Type(type, _month, _day, _weekday, _hour);
+        _checkStartEndTime(type, startTime, endTime);
+        _checkScheduleParams4Type(type, month, day, weekday, hour);
 
         VestingSchedule schedule = new VestingSchedule();
         schedule.setType(type);
-        schedule.setToken(_token);
-        schedule.setStartTime(_startTime);
-        schedule.setEndTime(_endTime);
-        schedule.setTimeInterval(_timeInterval);
-        schedule.setMonth(_month);
-        schedule.setDay(_day);
-        schedule.setWeekday(_weekday);
-        schedule.setHour(_hour);
+        schedule.setToken(token);
+        schedule.setStartTime(startTime);
+        schedule.setEndTime(endTime);
+        schedule.setTimeInterval(timeInterval);
+        schedule.setMonth(month);
+        schedule.setDay(day);
+        schedule.setWeekday(weekday);
+        schedule.setHour(hour);
 
         int id = lastId() + 1;
         vestingId.set(id);
@@ -181,7 +174,7 @@ public class Vesting {
 
         BigInteger total = BigInteger.ZERO;
         int idx = accountInfoCount.getOrDefault(id, 0);
-        for(AccountInfo account : _accounts) {
+        for(AccountInfo account : accounts) {
             _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
 
             BigInteger accountTotal = _totalAmountFrom(type, vestingTime.size(), account);

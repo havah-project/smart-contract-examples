@@ -207,13 +207,22 @@ public class VestingSchedule {
                 long endMonth = info[1];
                 while (true) {
                     long monthday = Datetime.getMonthDay(year, month);
-                    if (day <= monthday) {
-                        long dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
-                        long cur = dayTime + (hour * Datetime.HOUR);
-                        if (cur >= startTime) {
-                            if (cur > endTime) break;
-                            list.add(cur);
-                        }
+                    long dayTime = 0;
+                    long cur = 0;
+                    if (day == 0) {
+                        dayTime = monthTime + ((monthday - 1) * Datetime.ONE_DAY);
+                        cur = dayTime + (hour * Datetime.HOUR);
+                    } else if (day > monthday) {
+                        dayTime = monthTime + (monthday * Datetime.ONE_DAY);
+                        cur = dayTime;
+                    } else if (day <= monthday) {
+                        dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
+                        cur = dayTime + (hour * Datetime.HOUR);
+                    }
+
+                    if (cur >= startTime) {
+                        if (cur > endTime) break;
+                        list.add(cur);
                     }
 
                     monthTime += monthday * Datetime.ONE_DAY;
@@ -238,13 +247,22 @@ public class VestingSchedule {
                 while (true) {
                     long monthday = Datetime.getMonthDay(year, month);
                     long monthTime = yearTime + Datetime.getMonthAccTime(year, month - 1);
-                    if (day <= monthday) {
-                        long dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
-                        long cur = dayTime + (hour * Datetime.HOUR);
-                        if (cur >= startTime) {
-                            if (cur > endTime) break;
-                            list.add(cur);
-                        }
+                    long dayTime;
+                    long cur = 0;
+                    if (day == 0) {
+                        dayTime = monthTime + ((monthday - 1) * Datetime.ONE_DAY);
+                        cur = dayTime + (hour * Datetime.HOUR);
+                    } else if (day > monthday) {
+                        dayTime = monthTime + (monthday * Datetime.ONE_DAY);
+                        cur = dayTime;
+                    } else if (day <= monthday) {
+                        dayTime = monthTime + ((day - 1) * Datetime.ONE_DAY);
+                        cur = dayTime + (hour * Datetime.HOUR);
+                    }
+
+                    if (cur >= startTime) {
+                        if (cur > endTime) break;
+                        list.add(cur);
                     }
 
                     yearTime += (Datetime.isLeapYear(year) ? Datetime.LEAF_YEAR : Datetime.NORMAL_YEAR);
