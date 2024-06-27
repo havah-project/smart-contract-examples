@@ -53,16 +53,16 @@ public class Vesting {
             case Weekly:
             case Monthly:
             case Yearly:
-                _require(hour > -1 && hour < 24, "must have a valid hour");
+                _require(hour > -1 && hour < 24, "invalid hour");
         }
         switch (type) {
             case Weekly:
-                _require(weekday > -1 && weekday < 7, "must have a valid weekday");
+                _require(weekday > -1 && weekday < 7, "invalid weekday");
                 break;
             case Yearly:
-                _require(month > -1 && month < 13, "must have a valid month");
+                _require(month > -1 && month < 13, "invalid month");
             case Monthly:
-                _require(day > -1 && day < 32, "must have a valid day");
+                _require(day > -1 && day < 32, "invalid day");
         }
     }
 
@@ -166,7 +166,7 @@ public class Vesting {
         vestingId.set(id);
         vestingSchedule.set(id, schedule);
 
-        List vestingTime = schedule.calculateVestingTime();
+        List vestingTime = VestingScheduleType.calculateVestingTime(schedule);
         _checkVestingTimes(type, vestingTime);
         for(int i=0; i<vestingTime.size(); i++) {
             vestingTimes.at(id).add((long) vestingTime.get(i));
