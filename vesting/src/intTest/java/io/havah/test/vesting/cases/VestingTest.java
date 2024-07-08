@@ -354,6 +354,7 @@ public class VestingTest extends TestBase {
         _registerDailyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, hour, account, true);
 
         BigInteger id = vesting.lastId();
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.info("info : " + vesting.info(id));
         LOG.info("vestingTimes" + vesting.vestingTimes(id));
@@ -388,8 +389,7 @@ public class VestingTest extends TestBase {
         _registerWeeklyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, weekday, hour, account, true);
 
         BigInteger id = vesting.lastId();
-        LOG.info("info : " + vesting.info(id));
-        LOG.info("vestedTimes" + vesting.vestingTimes(id));
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.infoExiting();
     }
@@ -424,9 +424,7 @@ public class VestingTest extends TestBase {
         _registerMonthlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, day, hour, account, true);
 
         BigInteger id = vesting.lastId();
-
-        LOG.info("info : " + vesting.info(id));
-        LOG.info("vestedTimes" + vesting.vestingTimes(id));
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.infoExiting();
     }
@@ -455,7 +453,6 @@ public class VestingTest extends TestBase {
         BigInteger hour = BigInteger.valueOf(9);
         BigInteger day = BigInteger.valueOf(30);
         BigInteger month = BigInteger.valueOf(13);
-        BigInteger nullVal = BigInteger.valueOf(-1);
 
         _registerYearlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, month, day, hour, account, false);
 
@@ -463,9 +460,7 @@ public class VestingTest extends TestBase {
         _registerYearlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, month, day, hour, account, true);
 
         BigInteger id = vesting.lastId();
-
-        LOG.info("info : " + vesting.info(id));
-        LOG.info("vestedTimes" + vesting.vestingTimes(id));
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.infoExiting();
     }
@@ -493,6 +488,7 @@ public class VestingTest extends TestBase {
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
         BigInteger id = vesting.lastId();
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
@@ -523,7 +519,6 @@ public class VestingTest extends TestBase {
         )), true);
 
         _waitUtilTime(startTime.add(BigInteger.valueOf(50 * 1_000_000L)));
-        LOG.info("info : " + vesting.info(id));
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[1].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
