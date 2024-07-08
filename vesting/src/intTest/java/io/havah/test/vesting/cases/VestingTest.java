@@ -19,6 +19,10 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -177,6 +181,29 @@ public class VestingTest extends TestBase {
         }
     }
 
+    protected void _logHumanReadableRewardInfo(VestingScore score, BigInteger id) throws IOException {
+        Map info = score.info(id);
+        LOG.info("rewardInfo : " + info);
+        LOG.info("style : " + info.get("type"));
+
+        Instant instant = Instant.ofEpochMilli(((BigInteger)info.get("startTime")).divide(BigInteger.valueOf(1000)).longValue());
+        LocalDateTime localDate = instant.atZone(ZoneOffset.UTC).toLocalDateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd(E) HH:mm:ss");
+        LOG.info("startTime : " + localDate.format(formatter));
+
+        instant = Instant.ofEpochMilli(((BigInteger)info.get("endTime")).divide(BigInteger.valueOf(1000)).longValue());
+        localDate = instant.atZone(ZoneOffset.UTC).toLocalDateTime();
+        LOG.info("endTime : " + localDate.format(formatter));
+
+        List milestones = score.vestingTimes(id);
+        for(int i=0; i<milestones.size(); i++) {
+            BigInteger time = (BigInteger) milestones.get(i);
+            instant = Instant.ofEpochMilli(time.divide(BigInteger.valueOf(1000)).longValue());
+            localDate = instant.atZone(ZoneOffset.UTC).toLocalDateTime();
+            LOG.info(String.format("%d : %s", i, localDate.format(formatter)));
+        }
+    }
+
     @Test
     void registerOnetimeVestingTest() throws Exception {
         LOG.infoEntering("vesting", "registerOnetimeVestingTest");
@@ -276,6 +303,7 @@ public class VestingTest extends TestBase {
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
         BigInteger id = vesting.lastId();
+        _logHumanReadableRewardInfo(vesting, id);
 
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
