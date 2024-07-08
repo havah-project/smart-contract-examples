@@ -3,9 +3,7 @@ package io.havah.contract;
 import score.Address;
 import score.ObjectReader;
 import score.ObjectWriter;
-import scorex.util.ArrayList;
 
-import java.util.List;
 import java.util.Map;
 
 public class VestingSchedule {

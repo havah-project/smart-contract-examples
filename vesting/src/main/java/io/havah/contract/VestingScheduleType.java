@@ -95,8 +95,7 @@ public enum VestingScheduleType {
                 long endMonth = info[1];
                 while (true) {
                     long monthday = Datetime.getMonthDay(year, month);
-                    long dayTime = 0;
-                    long cur = 0;
+                    long dayTime, cur;
                     if (schedule.day == 0) {
                         dayTime = monthTime + ((monthday - 1) * Datetime.ONE_DAY);
                         cur = dayTime + (schedule.hour * Datetime.HOUR);
@@ -135,8 +134,7 @@ public enum VestingScheduleType {
                 while (true) {
                     long monthday = Datetime.getMonthDay(year, schedule.month);
                     long monthTime = yearTime + Datetime.getMonthAccTime(year, schedule.month - 1);
-                    long dayTime;
-                    long cur = 0;
+                    long dayTime, cur;
                     if (schedule.day == 0) {
                         dayTime = monthTime + ((monthday - 1) * Datetime.ONE_DAY);
                         cur = dayTime + (schedule.hour * Datetime.HOUR);

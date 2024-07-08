@@ -120,11 +120,11 @@ public class MerkleAirdropScore extends Score {
         return Map.of(
                 "id", obj.getItem("id").asInteger(),
                 "token", obj.getItem("token").asAddress(),
-                "start_time", obj.getItem("start_time").asInteger(),
-                "end_time", obj.getItem("end_time").asInteger(),
-                "total_amount", obj.getItem("total_amount").asInteger(),
-                "claimed_amount", obj.getItem("claimed_amount").asInteger(),
-                "left_amount", obj.getItem("left_amount").asInteger()
+                "start", obj.getItem("start").asInteger(),
+                "end", obj.getItem("end").asInteger(),
+                "total", obj.getItem("total").asInteger(),
+                "claimed", obj.getItem("claimed").asInteger(),
+                "remain", obj.getItem("remain").asInteger()
         );
     }
 
