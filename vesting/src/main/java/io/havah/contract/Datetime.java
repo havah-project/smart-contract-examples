@@ -39,12 +39,7 @@ public class Datetime {
         long year = info[0];
         long accTime = info[1];
         for(int i=1; i<=12; i++) {
-            int day = 31;
-            if(i == 2) {
-                day = isLeapYear(year) ? 29 : 28;
-            } else if(i % 2 == 0) {
-                day = 30;
-            }
+            int day = getMonthDay(year, i);
             long tmp = accTime + (day * ONE_DAY);
             if(tmp > time)
                 return new long[] {year, i, accTime};
@@ -53,7 +48,7 @@ public class Datetime {
         return new long[]{};
     }
 
-    static public long getMonthDay(long year, long month) {
+    static public int getMonthDay(long year, long month) {
         int day = 31;
         if(month < 8) {
             if (month == 2) {
@@ -71,12 +66,7 @@ public class Datetime {
     static public long getMonthAccTime(long year, long month) {
         long accTime = 0;
         for(int i=1; i<=month; i++) {
-            int day = 31;
-            if(i == 2) {
-                day = isLeapYear(year) ? 29 : 28;
-            } else if(i % 2 == 0) {
-                day = 30;
-            }
+            int day = getMonthDay(year, i);
             accTime += (day * ONE_DAY);
         }
         return accTime;
