@@ -321,7 +321,7 @@ public class Vesting {
         Address token = schedule.token;
 
         BigInteger claimed = accountClaimed.at(_id).getOrDefault(caller, BigInteger.ZERO);
-        _require(info.getTotalAmount().compareTo(claimed) >= 0, "no claimable amount");
+        _require(info.getTotalAmount().compareTo(claimed) > 0, "no claimable amount");
 
         BigInteger vestedAmount = _vestedAmountFrom(schedule.type, schedule.startTime, schedule.endTime, vestingTimes.at(_id), Context.getBlockTimestamp(), info);
         if(vestedAmount.compareTo(claimed) <= 0)
