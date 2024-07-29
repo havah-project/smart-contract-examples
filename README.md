@@ -1,7 +1,7 @@
 # Smart Contract Examples
 
 This repository contains Smart Contract examples written in Java. 
-Most sample codes use sclib, a library of reusable and secure contract components. [link](https://github.com/havah-project/sclib-token)
+Most example codes use sclib, a library of reusable and secure contract components. [link](https://github.com/havah-project/sclib-token)
 
 ## Requirements
 
