@@ -61,7 +61,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -83,7 +82,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -106,7 +104,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -131,7 +128,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -156,7 +152,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -182,7 +177,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -209,7 +203,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );
@@ -270,7 +263,6 @@ public class VestingScore  extends Score {
             Map account = (Map)accounts.get(i);
             arr.add(new RpcObject.Builder()
                     .put("address", new RpcValue((Address) account.get("address")))
-                    .put("eachAmount", new RpcValue((BigInteger) account.get("eachAmount")))
                     .put("totalAmount", new RpcValue((BigInteger) account.get("totalAmount")))
                     .build()
             );

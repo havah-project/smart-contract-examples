@@ -88,15 +88,6 @@ public class Vesting {
         }
     }
 
-    protected BigInteger _totalAmountFrom(VestingScheduleType style, int count, AccountInfo account) {
-        _require(account.getEachAmount().signum() > 0 || account.getTotalAmount().signum() > 0, "an account must have each_amount or total_amount");
-        if(account.getEachAmount().signum() > 0) {
-            _require(style != VestingScheduleType.Onetime && style != VestingScheduleType.Linear, "cannot use each_amount");
-            return account.getEachAmount().multiply(BigInteger.valueOf(count));
-        }
-        return account.getTotalAmount();
-    }
-
     @External(readonly = true)
     public int lastId() {
         return vestingId.getOrDefault(-1);
@@ -177,7 +168,7 @@ public class Vesting {
         for(AccountInfo account : accounts) {
             _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
 
-            BigInteger accountTotal = _totalAmountFrom(type, vestingTime.size(), account);
+            BigInteger accountTotal = account.getTotalAmount();
             total = total.add(accountTotal);
             account.setTotalAmount(accountTotal);
 
@@ -198,17 +189,17 @@ public class Vesting {
         VestingSchedule schedule = vestingSchedule.get(_id);
         _require(schedule != null, "vesting was not registered");
 
-        VestingScheduleType style = schedule.getType();
+        //VestingScheduleType style = schedule.getType();
         BigInteger sumAmount = totalAmount.get(_id);
-        int size = vestingTimes.at(_id).size();
+        //int size = vestingTimes.at(_id).size();
         int idx = accountInfoCount.getOrDefault(_id, 0);
 
         for(AccountInfo account : _accounts) {
             _require(accountInfo.at(_id).get(account.getAddress()) == null, "duplicated address");
 
-            BigInteger total = _totalAmountFrom(style, size, account);
+            BigInteger total = account.getTotalAmount();
             sumAmount = sumAmount.add(total);
-            account.setTotalAmount(total);
+            //account.setTotalAmount(total);
 
             Address address = account.getAddress();
             accountInfo.at(_id).set(address, account);
@@ -272,13 +263,6 @@ public class Vesting {
     }
 
     protected BigInteger _vestedAmountFrom(VestingScheduleType style, long startTime, long endTime, ArrayDB<Long> vestingTime, long blockTime, AccountInfo info) {
-        if(info.getEachAmount().signum() > 0) {
-            _require(style != VestingScheduleType.Onetime && style != VestingScheduleType.Linear, "cannot use each_amount");
-            if(blockTime >= endTime) {
-                return info.getEachAmount().multiply(BigInteger.valueOf(vestingTime.size()));
-            }
-            return info.getEachAmount().multiply(BigInteger.valueOf(_passedCountFrom(vestingTime, blockTime)));
-        }
         BigInteger total = info.getTotalAmount();
         if(style == VestingScheduleType.Onetime) {
             if(startTime <= blockTime) {

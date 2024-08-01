@@ -224,6 +224,9 @@ This subprojects contains the Java implementation of simple DEX(Decentralized Ex
 
 This subprojects contains the Java implementation of merkle airdrop. Contract is compatible with [merkletreejs](https://github.com/merkletreejs/merkletreejs?tab=readme-ov-file).
 
+### vesting
+
+This subproject contains the Java implementation of token vesting.
 
 ## References
 

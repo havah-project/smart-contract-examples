@@ -8,6 +8,7 @@ import foundation.icon.icx.data.Block;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
+import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.test.Env;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TestBase;
@@ -154,13 +155,23 @@ public class VestingTest extends TestBase {
         }
     }
 
-    protected void _claim(VestingScore score, Wallet wallet, BigInteger id, boolean success) throws IOException, ResultTimeoutException {
+    protected BigInteger _claim(VestingScore score, Wallet wallet, BigInteger id, boolean success) throws IOException, ResultTimeoutException {
         TransactionResult result = score.claim(wallet, id);
+        BigInteger claimedAmount = BigInteger.ZERO;
+        List<TransactionResult.EventLog> list = result.getEventLogs();
+        for(TransactionResult.EventLog log : list) {
+            if(log.getIndexed().get(0).asString().equals("Claimed(Address,Address,int)")) {
+                claimedAmount = log.getData().get(2).asInteger();
+                break;
+            }
+        }
         if(success) {
             assertSuccess(result);
         } else {
             assertFailure(result);
         }
+
+        return claimedAmount;
     }
 
     protected void _addVestingAccounts(VestingScore score, Wallet wallet, BigInteger id, List accounts, boolean success) throws IOException, ResultTimeoutException {
@@ -216,16 +227,10 @@ public class VestingTest extends TestBase {
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         ));
+
         _registerOnetimeVesting(vesting, govWallet, ZERO_ADDRESS, startTime, account, true);
-        account.add(Map.of(
-                "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
-        ));
-        _registerOnetimeVesting(vesting, govWallet, ZERO_ADDRESS, startTime, account, false);
 
         BigInteger id = vesting.lastId();
 
@@ -237,10 +242,12 @@ public class VestingTest extends TestBase {
         _waitUtilTime(startTime);
 
         claimable = vesting.claimableAmount(id, owners[0].getAddress());
-        LOG.info("claimableAmount : " + claimable);
+        LOG.info("claimableAmount [0] : " + claimable);
         assertEquals(amount, claimable);
 
-        _claim(vesting, owners[0], id, true);
+        BigInteger realClaimed = _claim(vesting, owners[0], id, true);
+        LOG.info("Real Claimed [0] : " + realClaimed);
+        assertEquals(amount, realClaimed);
 
         LOG.infoExiting();
     }
@@ -257,7 +264,6 @@ public class VestingTest extends TestBase {
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         ));
         _registerLinearVesting(vesting, govWallet, hsp20token.getAddress(), startTime, endTime, account, true);
@@ -285,20 +291,18 @@ public class VestingTest extends TestBase {
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
-        BigInteger endTime = time.add(BigInteger.valueOf(20 * 1_000_000L));
+        BigInteger endTime = time.add(BigInteger.valueOf(21 * 1_000_000L));
         BigInteger interval = BigInteger.valueOf(5 * 1_000_000L);
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         ));
         account.add(Map.of(
                 "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
+                "totalAmount", amount
         ));
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
@@ -311,15 +315,26 @@ public class VestingTest extends TestBase {
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
-        _claim(vesting, owners[0], id, true);
-        _claim(vesting, owners[1], id, true);
+        BigInteger realClaimed0 = _claim(vesting, owners[0], id, true);
+        BigInteger realClaimed1 = _claim(vesting, owners[1], id, true);
+        LOG.info("Real Claimed[0] : " + realClaimed0);
+        LOG.info("Real Claimed[1] : " + realClaimed1);
 
         _waitUtilTime(endTime.add(BigInteger.valueOf(1_000_000L)));
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
-        _claim(vesting, owners[0], id, true);
-        _claim(vesting, owners[1], id, true);
+        if(amount.compareTo(realClaimed0) > 0) {
+            _claim(vesting, owners[0], id, true);
+        } else {
+            _claim(vesting, owners[0], id, false);
+        }
+        if(amount.compareTo(realClaimed1) > 0) {
+            _claim(vesting, owners[1], id, true);
+        } else {
+            _claim(vesting, owners[1], id, false);
+        }
+
         LOG.info("claimableAmount[0] : " + vesting.claimableAmount(id, owners[0].getAddress()));
         LOG.info("claimableAmount[1] : " + vesting.claimableAmount(id, owners[1].getAddress()));
 
@@ -332,19 +347,17 @@ public class VestingTest extends TestBase {
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
-        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 1));
+        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 7));
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         ));
         account.add(Map.of(
                 "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
+                "totalAmount", amount
         ));
 
         BigInteger hour = BigInteger.valueOf(24);
@@ -368,19 +381,13 @@ public class VestingTest extends TestBase {
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
-        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 10));
+        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 70));
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
-        ));
-        account.add(Map.of(
-                "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
         ));
 
         BigInteger hour = BigInteger.valueOf(9);
@@ -406,13 +413,7 @@ public class VestingTest extends TestBase {
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
-        ));
-        account.add(Map.of(
-                "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
         ));
 
         BigInteger hour = BigInteger.valueOf(9);
@@ -435,23 +436,17 @@ public class VestingTest extends TestBase {
 
         BigInteger time = _getTimestamp();
         BigInteger startTime = _getTimestamp();
-        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 368));
+        BigInteger endTime = time.add(BigInteger.valueOf(ONE_DAY * 1368));
         BigInteger amount = ICX.multiply(BigInteger.valueOf(2));
 
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
-        ));
-        account.add(Map.of(
-                "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
         ));
 
         BigInteger hour = BigInteger.valueOf(9);
-        BigInteger day = BigInteger.valueOf(30);
+        BigInteger day = BigInteger.valueOf(13);
         BigInteger month = BigInteger.valueOf(13);
 
         _registerYearlyVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, month, day, hour, account, false);
@@ -477,13 +472,11 @@ public class VestingTest extends TestBase {
         List account = new ArrayList();
         account.add(Map.of(
                 "address", owners[0].getAddress(),
-                "eachAmount", BigInteger.ZERO,
                 "totalAmount", amount
         ));
         account.add(Map.of(
                 "address", owners[1].getAddress(),
-                "eachAmount", amount,
-                "totalAmount", BigInteger.ZERO
+                "totalAmount", amount
         ));
         _registerPeriodicVesting(vesting, govWallet, ZERO_ADDRESS, startTime, endTime, interval, account, true);
 
