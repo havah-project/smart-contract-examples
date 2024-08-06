@@ -8,7 +8,6 @@ import foundation.icon.icx.data.Block;
 import foundation.icon.icx.data.Bytes;
 import foundation.icon.icx.data.TransactionResult;
 import foundation.icon.icx.transport.http.HttpProvider;
-import foundation.icon.icx.transport.jsonrpc.RpcItem;
 import foundation.icon.test.Env;
 import foundation.icon.test.ResultTimeoutException;
 import foundation.icon.test.TestBase;

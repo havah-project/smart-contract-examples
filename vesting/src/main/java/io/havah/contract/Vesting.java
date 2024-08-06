@@ -95,47 +95,54 @@ public class Vesting {
 
     @External
     public void registerOnetimeVesting(Address _token, long _startTime, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Onetime, _token, _startTime, 0, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Onetime, _token, _startTime, 0, 0, _accounts,
                 -1, -1, -1, -1);
+        RegisteredOnetimeVesting(id, _token, _startTime);
     }
 
     @External
     public void registerLinearVesting(Address _token, long _startTime, long _endTime, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Linear, _token, _startTime, _endTime, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Linear, _token, _startTime, _endTime, 0, _accounts,
                 -1, -1, -1, -1);
+        RegisteredLinearVesting(id, _token, _startTime, _endTime);
     }
 
     @External
     public void registerPeriodicVesting(Address _token, long _startTime, long _endTime, long _timeInterval, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Periodic, _token, _startTime, _endTime, _timeInterval, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Periodic, _token, _startTime, _endTime, _timeInterval, _accounts,
                 -1, -1, -1, -1);
+        RegisteredPeriodicVesting(id, _token, _startTime, _endTime, _timeInterval);
     }
 
     @External
     public void registerDailyVesting(Address _token, long _startTime, long _endTime, int _hour, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Daily, _token, _startTime, _endTime, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Daily, _token, _startTime, _endTime, 0, _accounts,
                 -1, -1, -1, _hour);
+        RegisteredDailyVesting(id, _token, _startTime, _endTime, _hour);
     }
 
     @External
     public void registerWeeklyVesting(Address _token, long _startTime, long _endTime, int _weekday, int _hour, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Weekly, _token, _startTime, _endTime, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Weekly, _token, _startTime, _endTime, 0, _accounts,
                 -1, -1, _weekday, _hour);
+        RegisteredWeeklyVesting(id, _token, _startTime, _endTime, _weekday, _hour);
     }
 
     @External
     public void registerMonthlyVesting(Address _token, long _startTime, long _endTime, int _day, int _hour, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Monthly, _token, _startTime, _endTime, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Monthly, _token, _startTime, _endTime, 0, _accounts,
                 -1, _day, -1, _hour);
+        RegisteredMonthlyVesting(id, _token, _startTime, _endTime, _day, _hour);
     }
 
     @External
     public void registerYearlyVesting(Address _token, long _startTime, long _endTime, int _month, int _day, int _hour, AccountInfo[] _accounts) {
-        _registerConditionalVesting(VestingScheduleType.Yearly, _token, _startTime, _endTime, 0, _accounts,
+        int id = _registerConditionalVesting(VestingScheduleType.Yearly, _token, _startTime, _endTime, 0, _accounts,
                 _month, _day, -1, _hour);
+        RegisteredYearlyVesting(id, _token, _startTime, _endTime, _month, _day, _hour);
     }
 
-    protected void _registerConditionalVesting(VestingScheduleType type, Address token, long startTime, long endTime, long timeInterval,
+    protected int _registerConditionalVesting(VestingScheduleType type, Address token, long startTime, long endTime, long timeInterval,
                                                AccountInfo[] accounts, int month, int day,
                                                int weekday, int hour) {
         _onlyOwner();
@@ -180,6 +187,8 @@ public class Vesting {
         }
         accountInfoCount.set(id, idx);
         totalAmount.set(id, total);
+
+        return id;
     }
 
     @External
@@ -404,4 +413,25 @@ public class Vesting {
 
     @EventLog
     public void Claimed(Address _token, Address _recipient, BigInteger _amount) {}
+
+    @EventLog
+    public void RegisteredOnetimeVesting(int _id, Address _token, long _startTime) {}
+
+    @EventLog
+    public void RegisteredLinearVesting(int _id, Address _token, long _startTime, long _endTime) {}
+
+    @EventLog
+    public void RegisteredPeriodicVesting(int _id, Address _token, long _startTime, long _endTime, long _timeInterval) {}
+
+    @EventLog
+    public void RegisteredDailyVesting(int _id, Address _token, long _startTime, long _endTime, int _hour) {}
+
+    @EventLog
+    public void RegisteredWeeklyVesting(int _id, Address _token, long _startTime, long _endTime, int _weekday, int _hour) {}
+
+    @EventLog
+    public void RegisteredMonthlyVesting(int _id, Address _token, long _startTime, long _endTime, int _day, int _hour) {}
+
+    @EventLog
+    public void RegisteredYearlyVesting(int _id, Address _token, long _startTime, long _endTime, int _month, int _day, int _hour) {}
 }
