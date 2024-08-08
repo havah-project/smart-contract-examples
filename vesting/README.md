@@ -1,7 +1,7 @@
-# Vesting
+# Vesting
 
 This subproject provides a sample implementation of vesting. The vesting contract supports various vesting types to be distributed to recipients. 
-The recipient must claim their rewards, and it automatically calculates the vested amount according to the vesting type, the current time, and the total amount of the vesting.
+The recipient must claim their reward, and it automatically calculates the vested amount according to the vesting type, the current time, and the total amount of the vesting.
 
 ## How to Use
 1. Create a vesting by <code>registerXXXVesting()</code> according to the vesting type.
@@ -13,7 +13,7 @@ The recipient must claim their rewards, and it automatically calculates the vest
 ### Onetime
 The total amount is claimable after the specified time. Usually called cliff vesting.
 
-### Liner
+### Linear
 The claimable amount is determined based on the proportion of the current time relative to the start and end times.
 
 ### Periodic
@@ -24,7 +24,7 @@ For example, if the vesting schedule is as follows.
 * End time: 01:48:00
 * Interval : 10 minute    
 ``` 
-The claimable amount are newly allowed at the following times. 
+The claimable amount is newly allowed at the following times. 
 ```
 * 01:15:00
 * 01:25:00
@@ -33,14 +33,14 @@ The claimable amount are newly allowed at the following times.
 ```
 
 ### Daily
-The claimable amount is incremented daily at a specified time between the start and end times. The time is hour-basis ranging from 0 to 23 on UTC.
+The claimable amount is incremented daily at a specified time between the start and end times. The time is hour-basis ranging from 0 to 23 in UTC.
 For example, if the vesting schedule is as follows.
 ```
 * Start time : 2024-10-10 15:00:00
 * End time : 2024-10-40 15:00:00
 * Hour : 18
 ```
-The claimable amount are newly allowed at the following times. 
+The claimable amount is newly allowed at the following times. 
 ```
 * 2024-10-21 18:00:00
 * 2024-10-22 18:00:00
@@ -56,7 +56,7 @@ Day of the week value: Sunday(0), Monday(1), ..., Saturday(6)
 * Day of week : 2 (Tuesday)
 * Hour 18
 ```
-Claims can be made equally at the following times
+The claimable amount is newly allowed at the following times. 
 ```
 * 2025-01-07 18:00:00
 * 2025-01-14 18:00:00
@@ -73,7 +73,7 @@ For example, if the conditions are as follows
 * Day : 30
 * Hour : 9
 ```
-Claims can be made equally at the following times
+The claimable amount is newly allowed at the following times. 
 ```
 * 2025-01-30 09:00:00
 * 2025-03-01 09:00:00
