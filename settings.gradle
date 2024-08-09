@@ -9,6 +9,8 @@ include (
     'liquidity-token',
     'liquidity-pool',
     'pool-factory',
+    'merkle-airdrop',
+    'vesting',
     'testinteg')
 project(':liquidity-token').projectDir = file('dex/liquidity-token')
 project(':liquidity-pool').projectDir = file('dex/liquidity-pool')
