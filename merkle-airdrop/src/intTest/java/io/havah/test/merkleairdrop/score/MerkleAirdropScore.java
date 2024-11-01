@@ -35,16 +35,54 @@ public class MerkleAirdropScore extends Score {
         return new MerkleAirdropScore(score);
     }
 
-    public TransactionResult addAirdrop(Wallet wallet, Address token, byte[] merkleRoot, BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
+    //    setAirdrop(Address _token, byte[] _merkleRoot, long _startTime, @Optional long _endTime, @Optional BigInteger _totalAmount)
+    public TransactionResult setAirdrop(Wallet wallet, Address token, byte[] merkleRoot,
+                                        BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
             throws IOException, ResultTimeoutException {
         RpcObject.Builder params = new RpcObject.Builder()
                 .put("_token", new RpcValue(token))
                 .put("_merkleRoot", new RpcValue(merkleRoot))
                 .put("_startTime", new RpcValue(startTime));
-        if(endTime != null) params.put("_endTime", new RpcValue(endTime));
-        if(totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
+        if (endTime != null) params.put("_endTime", new RpcValue(endTime));
+        if (totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
 
-        return invokeAndWaitResult(wallet, "addAirdrop", params.build());
+        return invokeAndWaitResult(wallet, "setAirdrop", params.build());
+    }
+
+    public TransactionResult setRewardToken(Wallet wallet, Address token)
+            throws IOException, ResultTimeoutException {
+        RpcObject.Builder params = new RpcObject.Builder()
+                .put("_token", new RpcValue(token));
+        return invokeAndWaitResult(wallet, "setRewardToken", params.build());
+    }
+
+    public TransactionResult setVestingContract(Wallet wallet, Address contract)
+            throws IOException, ResultTimeoutException {
+        RpcObject.Builder params = new RpcObject.Builder()
+                .put("_contract", new RpcValue(contract));
+        return invokeAndWaitResult(wallet, "setVestingContract", params.build());
+    }
+
+    public TransactionResult setTreasury(Wallet wallet, Address treasury)
+            throws IOException, ResultTimeoutException {
+        RpcObject.Builder params = new RpcObject.Builder()
+                .put("_treasury", new RpcValue(treasury));
+        return invokeAndWaitResult(wallet, "setTreasury", params.build());
+    }
+
+    // void selectRewardOption(int _option, BigInteger _amount, byte[][] _proof) {
+    public TransactionResult selectRewardOption(Wallet wallet, int option, BigInteger amount, byte[][] proof)
+            throws IOException, ResultTimeoutException {
+        RpcArray.Builder array = new RpcArray.Builder();
+        for (byte[] leaf : proof) {
+            array.add(new RpcValue(leaf));
+        }
+
+        RpcObject.Builder params = new RpcObject.Builder()
+                .put("_option", new RpcValue(BigInteger.valueOf(option)))
+                .put("_amount", new RpcValue(amount))
+                .put("_proof", array.build());
+        return invokeAndWaitResult(wallet, "selectRewardOption", params.build());
     }
 
     public TransactionResult updateAirdrop(Wallet wallet, BigInteger id, BigInteger startTime, BigInteger endTime, BigInteger totalAmount)
@@ -52,8 +90,8 @@ public class MerkleAirdropScore extends Score {
         RpcObject.Builder params = new RpcObject.Builder()
                 .put("_id", new RpcValue(id))
                 .put("_startTime", new RpcValue(startTime));
-        if(endTime != null) params.put("_endTime", new RpcValue(endTime));
-        if(totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
+        if (endTime != null) params.put("_endTime", new RpcValue(endTime));
+        if (totalAmount != null) params.put("_totalAmount", new RpcValue(totalAmount));
 
         return invokeAndWaitResult(wallet, "updateAirdrop", params.build());
     }
@@ -61,7 +99,7 @@ public class MerkleAirdropScore extends Score {
     public TransactionResult claim(Wallet wallet, BigInteger id, BigInteger amount, byte[][] proof)
             throws IOException, ResultTimeoutException {
         RpcArray.Builder array = new RpcArray.Builder();
-        for(byte[] leaf : proof) {
+        for (byte[] leaf : proof) {
             array.add(new RpcValue(leaf));
         }
 
@@ -77,7 +115,7 @@ public class MerkleAirdropScore extends Score {
     public TransactionResult giveaway(Wallet wallet, BigInteger id, Address recipient, BigInteger amount, byte[][] proof)
             throws IOException, ResultTimeoutException {
         RpcArray.Builder array = new RpcArray.Builder();
-        for(byte[] leaf : proof) {
+        for (byte[] leaf : proof) {
             array.add(new RpcValue(leaf));
         }
 
@@ -96,7 +134,7 @@ public class MerkleAirdropScore extends Score {
         RpcObject.Builder params = new RpcObject.Builder()
                 .put("_token", new RpcValue(token))
                 .put("_amount", new RpcValue(amount));
-        if(recipient != null) params.put("_recipient", new RpcValue(recipient));
+        if (recipient != null) params.put("_recipient", new RpcValue(recipient));
 
         return invokeAndWaitResult(wallet, "withdraw", params.build());
     }
@@ -138,7 +176,7 @@ public class MerkleAirdropScore extends Score {
 
     public boolean isClaimable(BigInteger id, Address address, BigInteger amount, byte[][] proof) throws IOException {
         RpcArray.Builder array = new RpcArray.Builder();
-        for(byte[] leaf : proof) {
+        for (byte[] leaf : proof) {
             array.add(new RpcValue(leaf));
         }
 
@@ -154,7 +192,7 @@ public class MerkleAirdropScore extends Score {
     public boolean isValidProof(byte[] merkleRoot, byte[] hash, byte[][] _proof)
             throws IOException {
         RpcArray.Builder array = new RpcArray.Builder();
-        for(byte[] leaf : _proof) {
+        for (byte[] leaf : _proof) {
             array.add(new RpcValue(leaf));
         }
 
@@ -165,5 +203,18 @@ public class MerkleAirdropScore extends Score {
                 .build();
 
         return call("isValidProof", params).asBoolean();
+    }
+
+    public Map getRewardStatus(Address address) throws IOException {
+        RpcObject params = new RpcObject.Builder()
+                .put("_address", new RpcValue(address))
+                .build();
+        RpcObject obj = call("getRewardStatus", params).asObject();
+        return Map.of(
+                "rewardOption", obj.getItem("rewardOption").asInteger(),
+                "total", obj.getItem("total").asInteger(),
+                "claimable", obj.getItem("claimable").asInteger(),
+                "remained", obj.getItem("remained").asInteger()
+        );
     }
 }

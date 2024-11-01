@@ -19,6 +19,8 @@ import foundation.icon.test.TransactionHandler;
 import io.havah.test.merkleairdrop.score.LogFinder;
 import io.havah.test.merkleairdrop.score.MerkleAirdropScore;
 import io.havah.test.merkleairdrop.score.SampleTokenScore;
+import io.havah.test.merkleairdrop.score.VestingScore;
+import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +28,10 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static foundation.icon.test.Env.LOG;
 import static org.junit.jupiter.api.Assertions.*;
@@ -37,8 +43,51 @@ public class MerkleAirdropTest extends TestBase {
 
     private static Wallet govWallet;
     private static Wallet[] owners = new KeyWallet[5];
-    private static MerkleAirdropScore airdrop;
+    private static BigInteger[] airdropAmountPerOwner = new BigInteger[] {
+            ICX.multiply(BigInteger.valueOf(10)),
+            ICX.multiply(BigInteger.valueOf(20)),
+            ICX.multiply(BigInteger.valueOf(30)),
+            ICX.multiply(BigInteger.valueOf(40)),
+            ICX.multiply(BigInteger.valueOf(50))
+    };
+    private static MerkleAirdropScore airdropContract;
     private static SampleTokenScore hsp20token;
+
+    public int _compare(byte[] a, byte[] b) {
+        if (a == b)
+            return 0;
+        if (a == null || b == null)
+            return a == null ? -1 : 1;
+
+        int count = Math.min(a.length, b.length);
+        for (int i = 0; i < count; i++) {
+            int cmp = Integer.compare(0xff & a[i], 0xff & b[i]);
+            if (cmp != 0) {
+                return cmp;
+            }
+        }
+
+        return a.length - b.length;
+    }
+
+    protected byte[] _makeHash(byte[] a, byte[] b) {
+        Keccak.Digest256 keccak256 = new Keccak.Digest256();
+        return keccak256.digest(_concat(a, b));
+    }
+
+    public boolean makeRootHash(byte[] _merkleRoot, byte[] _hash, byte[][] _proof) {
+        byte[] hash = _hash;
+        for (byte[] leaf : _proof) {
+            if (_compare(hash, leaf) <= 0) {
+                hash = _makeHash(hash, leaf);
+            } else {
+                hash = _makeHash(leaf, hash);
+            }
+        }
+
+        return _compare(hash, _merkleRoot) == 0;
+    }
+
 
     @BeforeAll
     static void setup() throws Exception {
@@ -47,26 +96,24 @@ public class MerkleAirdropTest extends TestBase {
         txHandler = new TransactionHandler(iconService, chain);
         govWallet = txHandler.getChain().godWallet;
 
-        owners[0] = KeyWallet.load(new Bytes("0x982d49546ed9998a10af77bbcd6856a76501ad5049d55d0f5220b7664831b87c")); // hx3e65ce9ff07186df3ee2bda02d20420e2da5da80
-        owners[1] = KeyWallet.load(new Bytes("0xb8eb504a175604c65fe2f4bbfd886147ab053de4322180c7142cf26dcc2e5d12")); // hx34e7759532571fe15c129a045627b437869c818c
-        owners[2] = KeyWallet.load(new Bytes("0x982d54ca13dcb468780768574bebcfd905c53ce0edbdd194dbc6fc2539a8dd0b")); // hx1dc6d2f7fe9e1f969279e816b3fdbfbe4134bf3d
-        owners[3] = KeyWallet.load(new Bytes("0xff35d8489b1e804437752c606611f5e74252915f2cd34708a98554e570b3a312")); // hxe0afc6ff8a605f24abd42b2cf2f1e0de11a797ff
-        owners[4] = KeyWallet.load(new Bytes("0x681b64f95f313b828426cacfa6c4df63ffe8dd4a002dff34d585527d5cd9cc0e")); // hx36b8ecb38486d273c4cb87fd8d2509b2e441c02d
+        owners = new Wallet[] {
+                KeyWallet.load(new Bytes("0x982d49546ed9998a10af77bbcd6856a76501ad5049d55d0f5220b7664831b87c")), // hx3e65ce9ff07186df3ee2bda02d20420e2da5da80
+                KeyWallet.load(new Bytes("0xb8eb504a175604c65fe2f4bbfd886147ab053de4322180c7142cf26dcc2e5d12")), // hx34e7759532571fe15c129a045627b437869c818c
+                KeyWallet.load(new Bytes("0x982d54ca13dcb468780768574bebcfd905c53ce0edbdd194dbc6fc2539a8dd0b")), // hx1dc6d2f7fe9e1f969279e816b3fdbfbe4134bf3d
+                KeyWallet.load(new Bytes("0xff35d8489b1e804437752c606611f5e74252915f2cd34708a98554e570b3a312")), // hxe0afc6ff8a605f24abd42b2cf2f1e0de11a797ff
+                KeyWallet.load(new Bytes("0x681b64f95f313b828426cacfa6c4df63ffe8dd4a002dff34d585527d5cd9cc0e")) // hx36b8ecb38486d273c4cb87fd8d2509b2e441c02d
+        };
+//        owners[0] = KeyWallet.load(new Bytes("0x982d49546ed9998a10af77bbcd6856a76501ad5049d55d0f5220b7664831b87c")); // hx3e65ce9ff07186df3ee2bda02d20420e2da5da80
+//        owners[1] = KeyWallet.load(new Bytes("0xb8eb504a175604c65fe2f4bbfd886147ab053de4322180c7142cf26dcc2e5d12")); // hx34e7759532571fe15c129a045627b437869c818c
+//        owners[2] = KeyWallet.load(new Bytes("0x982d54ca13dcb468780768574bebcfd905c53ce0edbdd194dbc6fc2539a8dd0b")); // hx1dc6d2f7fe9e1f969279e816b3fdbfbe4134bf3d
+//        owners[3] = KeyWallet.load(new Bytes("0xff35d8489b1e804437752c606611f5e74252915f2cd34708a98554e570b3a312")); // hxe0afc6ff8a605f24abd42b2cf2f1e0de11a797ff
+//        owners[4] = KeyWallet.load(new Bytes("0x681b64f95f313b828426cacfa6c4df63ffe8dd4a002dff34d585527d5cd9cc0e")); // hx36b8ecb38486d273c4cb87fd8d2509b2e441c02d
 
         BigInteger amount = ICX.multiply(BigInteger.valueOf(300));
-        for(int i=0; i<owners.length; i++) {
-            Bytes txHash = txHandler.transfer(owners[i].getAddress(), amount);
+        for (Wallet owner : owners) {
+            Bytes txHash = txHandler.transfer(owner.getAddress(), amount);
             assertSuccess(txHandler.getResult(txHash));
         }
-
-        LOG.info("deploy MerkleAirdrop");
-        airdrop = MerkleAirdropScore.mustDeploy(txHandler, govWallet);
-        Bytes txHash = txHandler.transfer(airdrop.getAddress(), amount);
-        assertSuccess(txHandler.getResult(txHash));
-
-        hsp20token = SampleTokenScore.mustDeploy(txHandler, govWallet, BigInteger.valueOf(18), amount);
-        assertSuccess(hsp20token.transfer(govWallet, airdrop.getAddress(), amount));
-        LOG.info("airdrop balanceOf : " + hsp20token.balanceOf(airdrop.getAddress()));
     }
 
     protected String _cleanHexPrefix(String s) {
@@ -136,6 +183,7 @@ public class MerkleAirdropTest extends TestBase {
     protected void _addAirdrop(MerkleAirdropScore score, Wallet wallet, Address token, byte[] merkleRoot,
                                BigInteger startTime, BigInteger endTime, BigInteger totalAmount, boolean success)
             throws IOException, ResultTimeoutException {
+/*
         TransactionResult result = score.addAirdrop(wallet, token, merkleRoot, startTime, endTime, totalAmount);
         if (success) {
             assertSuccess(result);
@@ -144,6 +192,7 @@ public class MerkleAirdropTest extends TestBase {
         } else {
             assertFailure(result);
         }
+*/
     }
 
     protected BigInteger _getBalance(Address token, Address owner) throws IOException {
@@ -281,93 +330,137 @@ public class MerkleAirdropTest extends TestBase {
         return null;
     }
 
-    @Test
-    void validProofTest() throws Exception {
-        LOG.infoEntering("MerkleAirdrop", "validProofTest");
+    static final String REWARD_STATUS_OPTION = "rewardOption";
+    static final String REWARD_STATUS_TOTAL = "total";
+    static final String REWARD_STATUS_CLAIMABLE = "claimable";
+    static final String REWARD_STATUS_REMAINED = "remained";
 
-        byte[] hash1 = _makeHash(owners[0].getAddress(), ICX.multiply(BigInteger.valueOf(10)));
-        byte[] hash2 = _makeHash(owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)));
-        byte[] hash3 = _makeHash(owners[2].getAddress(), ICX.multiply(BigInteger.valueOf(30)));
-        byte[] hash4 = _makeHash(owners[3].getAddress(), ICX.multiply(BigInteger.valueOf(40)));
-        byte[] hash5 = _makeHash(owners[4].getAddress(), ICX.multiply(BigInteger.valueOf(50)));
-
-        assertTrue(airdrop.isValidProof(root, hash1, getProof(hash1)));
-        assertTrue(airdrop.isValidProof(root, hash2, getProof(hash2)));
-        assertTrue(airdrop.isValidProof(root, hash3, getProof(hash3)));
-        assertTrue(airdrop.isValidProof(root, hash4, getProof(hash4)));
-        assertTrue(airdrop.isValidProof(root, hash5, getProof(hash5)));
-
-        LOG.infoExiting();
+    boolean checkRewardStatus(Address address, BigInteger rewardOption, BigInteger total, BigInteger claimable, BigInteger remained) throws IOException {
+        Map rewardStatus = airdropContract.getRewardStatus(address);
+        BigInteger _option = (BigInteger) rewardStatus.get(REWARD_STATUS_OPTION);
+        BigInteger _total = (BigInteger) rewardStatus.get(REWARD_STATUS_TOTAL);
+        BigInteger _claimable = (BigInteger) rewardStatus.get(REWARD_STATUS_CLAIMABLE);
+        BigInteger _remained = (BigInteger) rewardStatus.get(REWARD_STATUS_REMAINED);
+        if (!_option.equals(rewardOption) || !_total.equals(total) || !_claimable.equals(claimable) || !_remained.equals(remained)) {
+            System.out.println("reward expected(" + _option + " actual(" + rewardOption + ")");
+            System.out.println("total expected(" + _total + " actual(" + total + ")");
+            System.out.println("claimable expected(" + _claimable + " actual(" + claimable + ")");
+            System.out.println("remained expected(" + _remained + " actual(" + remained + ")");
+            return false;
+        }
+        return true;
     }
 
     @Test
-    void MerkleAirdropBasicTest() throws Exception {
-        LOG.infoEntering("MerkleAirdrop", "MerkleAirdropBasicTest");
+    void airdrop() throws Exception {
+        BigInteger AIRDROP_AMOUNT = ICX.multiply(BigInteger.valueOf(100));
+        hsp20token = SampleTokenScore.mustDeploy(txHandler, govWallet, BigInteger.valueOf(18), AIRDROP_AMOUNT);
 
-        BigInteger amount = ICX.multiply(BigInteger.valueOf(150L));
+        // setting -->
+        VestingScore vestingScore = VestingScore.mustDeploy(txHandler, govWallet);
+//        BigInteger startTime = _getTimestamp();
+//        BigInteger ONE_YEAR = BigInteger.valueOf(31536000).multiply(BigInteger.valueOf(1000000));
+//        BigInteger endTime = startTime.add(ONE_YEAR);
+        // 1730422800000
+        // 1735693200000
+        BigInteger startTime = BigInteger.valueOf(1730422800_000_000L);
+        BigInteger endTime = BigInteger.valueOf(1735693200_000_000L);
+        System.out.println("startTime(" + startTime + "), endTime(" + endTime + ")");
 
-        assertEquals(airdrop.lastId(), BigInteger.valueOf(-1));
+        vestingScore.registerMonthlyVesting(govWallet, hsp20token.getAddress(), startTime, endTime,
+                BigInteger.ONE, BigInteger.TWO, new ArrayList());
+        List list = vestingScore.vestingTimes(BigInteger.ZERO);
+        System.out.println("schedule : " + Arrays.toString(list.toArray()));
 
-        BigInteger startTime = _getTimestamp();
-        BigInteger endTime = startTime.add(BigInteger.valueOf(30 * 1_000_000L));
-        _addAirdrop(airdrop, owners[0], ZERO_ADDRESS, root, startTime, null, amount, false);
-        _addAirdrop(airdrop, govWallet, ZERO_ADDRESS, root, startTime, endTime, amount, true);
+        airdropContract = MerkleAirdropScore.mustDeploy(txHandler, govWallet);
+        hsp20token.transfer(govWallet, airdropContract.getAddress(), AIRDROP_AMOUNT);
+        vestingScore.setRewardManager(govWallet, airdropContract.getAddress());
 
-        BigInteger id = BigInteger.ZERO;
-        assertEquals(airdrop.lastId(), id);
+        Wallet treasury = KeyWallet.create();
+        TransactionResult result;
+        result = airdropContract.setAirdrop(govWallet, hsp20token.getAddress(), root, startTime, endTime, AIRDROP_AMOUNT);
+        assertSuccess(result);
+        result = airdropContract.setTreasury(govWallet, treasury.getAddress());
+        assertSuccess(result);
+        result = airdropContract.setVestingContract(govWallet, vestingScore.getAddress());
+        assertSuccess(result);
+//        result = airdropContract.setRewardToken(govWallet, hsp20token.getAddress());
+//        assertSuccess(result);
 
-        byte[] hash1 = _makeHash(owners[0].getAddress(), ICX.multiply(BigInteger.valueOf(10)));
-        byte[] hash2 = _makeHash(owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)));
-        byte[] hash3 = _makeHash(owners[2].getAddress(), ICX.multiply(BigInteger.valueOf(30)));
-//        byte[] hash4 = _makeHash(owners[3].getAddress(), ICX.multiply(BigInteger.valueOf(40)));
-//        byte[] hash5 = _makeHash(owners[4].getAddress(), ICX.multiply(BigInteger.valueOf(50)));
+        Wallet claimer1 = owners[0];
+        BigInteger airdrop1 = airdropAmountPerOwner[0];
+        byte[] hash = _makeHash(claimer1.getAddress(), airdrop1);
+        byte[][] proofHash = getProof(hash);
+        result = airdropContract.selectRewardOption(claimer1, 1, airdrop1, proofHash);
+        assertSuccess(result);
 
-        LOG.info("id 0 info : " + airdrop.info(id));
+        // check claimed
+        BigInteger claimed = airdrop1.divide(BigInteger.TWO);
+        assertEquals(hsp20token.balanceOf(claimer1.getAddress()), claimed);
 
-        LOG.info(">>> claim");
-        assertFalse(airdrop.isClaimed(id, owners[0].getAddress()));
-        assertTrue(airdrop.isClaimable(id, owners[0].getAddress(), ICX.multiply(BigInteger.valueOf(10)), getProof(hash1)));
-        _claim(airdrop, owners[0], id, ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(10)), getProof(hash1), true);
-        _claim(airdrop, owners[0], id, ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(10)), getProof(hash1), false);
-        assertTrue(airdrop.isClaimed(id, owners[0].getAddress()));
+        // check treasury
+        BigInteger balanceOfTreasury = airdrop1.subtract(claimed);
+        assertEquals(hsp20token.balanceOf(treasury.getAddress()), balanceOfTreasury);
 
-        LOG.info(">>> giveaway");
-        assertFalse(airdrop.isClaimed(id, owners[1].getAddress()));
-        assertTrue(airdrop.isClaimable(id, owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)), getProof(hash2)));
-        _giveaway(airdrop, govWallet, id, ZERO_ADDRESS, owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)), getProof(hash2), true);
-        _giveaway(airdrop, govWallet, id, ZERO_ADDRESS, owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)), getProof(hash2), false);
-        assertTrue(airdrop.isClaimed(id, owners[1].getAddress()));
+        checkRewardStatus(claimer1.getAddress(), BigInteger.ONE, claimed, BigInteger.ZERO, BigInteger.ZERO);
 
-        LOG.info(">>> withdraw");
-        _withdraw(airdrop, owners[2], ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(50)), null, false);
-        _withdraw(airdrop, govWallet, ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(25)), null, true);
-        _withdraw(airdrop, govWallet, ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(25)), owners[2].getAddress(), true);
+        Wallet claimer2 = owners[1];
+        BigInteger airdrop2 =  airdropAmountPerOwner[1];
+        hash = _makeHash(claimer2.getAddress(), airdrop2);
+        result = airdropContract.selectRewardOption(claimer2, 2, airdrop2, getProof(hash));
+        assertSuccess(result);
 
-        id = BigInteger.ONE;
-        _addAirdrop(airdrop, govWallet, hsp20token.getAddress(), root, _getTimestamp(), null, amount, true);
+        // check claimed
+        assertEquals(hsp20token.balanceOf(claimer2.getAddress()), BigInteger.ZERO);
 
-        LOG.info("stage 1 info : " + airdrop.info(id));
+        // check treasury
+        // not changed
+        assertEquals(hsp20token.balanceOf(treasury.getAddress()), balanceOfTreasury);
+        assertEquals(hsp20token.balanceOf(vestingScore.getAddress()), airdrop2);
 
-        LOG.info(">>> claim");
-        _claim(airdrop, owners[0], id, hsp20token.getAddress(), ICX.multiply(BigInteger.valueOf(10)), getProof(hash1), true);
+        checkRewardStatus(claimer2.getAddress(), BigInteger.ZERO, airdrop2, BigInteger.ZERO, airdrop2);
 
-        LOG.info(">>> giveaway");
-        _giveaway(airdrop, govWallet, id, hsp20token.getAddress(), owners[1].getAddress(), ICX.multiply(BigInteger.valueOf(20)), getProof(hash2), true);
+        // failure - invalid option select
+        Wallet claimer3 = owners[2];
+        BigInteger airdrop3 = airdropAmountPerOwner[2];
+        hash = _makeHash(claimer3.getAddress(), airdrop3);
+        result = airdropContract.selectRewardOption(claimer3, 3, airdrop3, getProof(hash));
+        assertFailure(result);
 
-        LOG.info(">>> withdraw");
-        _withdraw(airdrop, govWallet, hsp20token.getAddress(), ICX.multiply(BigInteger.valueOf(25)), null, true);
-        _withdraw(airdrop, govWallet, hsp20token.getAddress(), ICX.multiply(BigInteger.valueOf(25)), owners[2].getAddress(), true);
+        // failure - invalid hash
+        hash = _makeHash(claimer2.getAddress(), airdrop2);
+        result = airdropContract.selectRewardOption(claimer3, 2, airdrop3, getProof(hash));
+        assertFailure(result);
 
-        _waitUtilTime(endTime.add(BigInteger.valueOf(1_000_000L)));
+        // failure - invalid claimer
+        Wallet claimer4 = owners[3];
+        hash = _makeHash(claimer3.getAddress(), airdrop3);
+        result = airdropContract.selectRewardOption(claimer4, 2, airdrop3, getProof(hash));
+        assertFailure(result);
 
-        id = BigInteger.ZERO;
-        LOG.info("stage 0 info : " + airdrop.info(id));
+        // already with claimer1
+        hash = _makeHash(claimer1.getAddress(), airdrop1);
+        result = airdropContract.selectRewardOption(claimer1, 2, airdrop1, getProof(hash));
+        assertFailure(result);
 
-        LOG.info(">>> claim");
-        assertFalse(airdrop.isClaimed(id, owners[2].getAddress()));
-        assertFalse(airdrop.isClaimable(id, owners[2].getAddress(), ICX.multiply(BigInteger.valueOf(30)), getProof(hash3)));
-        _claim(airdrop, owners[2], id, ZERO_ADDRESS, ICX.multiply(BigInteger.valueOf(30)), getProof(hash3), false);
+        // already with claimer2
+        hash = _makeHash(claimer2.getAddress(), airdrop2);
+        result = airdropContract.selectRewardOption(claimer2, 1, airdrop2, getProof(hash));
+        assertFailure(result);
 
-        LOG.infoExiting();
+        // success
+        hash = _makeHash(claimer3.getAddress(), airdrop3);
+        result = airdropContract.selectRewardOption(claimer3, 2, airdrop3, getProof(hash));
+        assertSuccess(result);
+
+        // check claimed
+        assertEquals(hsp20token.balanceOf(claimer3.getAddress()), BigInteger.ZERO);
+
+        // check treasury
+        // not changed
+        assertEquals(hsp20token.balanceOf(treasury.getAddress()), balanceOfTreasury);
+        assertEquals(hsp20token.balanceOf(vestingScore.getAddress()), airdrop2.add(airdrop3));
+
+        // TODO: getStatus
     }
 }
