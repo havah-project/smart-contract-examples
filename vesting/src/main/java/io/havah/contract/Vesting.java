@@ -195,13 +195,11 @@ public class Vesting {
 
     @External
     public void addVestingAccount(int _id, Address _address, BigInteger _amount) {
-        _require(_isCaller(rewardManager.get()), "Only owner can call this method");
+        _require(_isCaller(rewardManager.get()), "Only reward manager can call this method");
         VestingSchedule schedule = vestingSchedule.get(_id);
         _require(schedule != null, "vesting was not registered");
 
-        //VestingScheduleType style = schedule.getType();
         BigInteger sumAmount = totalAmount.get(_id);
-        //int size = vestingTimes.at(_id).size();
         int idx = accountInfoCount.getOrDefault(_id, 0);
 
         _require(accountInfo.at(_id).get(_address) == null, "duplicated address");
@@ -301,7 +299,7 @@ public class Vesting {
 
     @External
     public void claim(int _id, Address claimer) {
-        _require(_isCaller(rewardManager.get()), "Only owner can call this method");
+        _require(_isCaller(rewardManager.get()), "Only reward manager can call this method");
         VestingSchedule schedule = vestingSchedule.get(_id);
         _require(schedule != null, "vesting was not registered");
         AccountInfo info = accountInfo.at(_id).get(claimer);
@@ -402,8 +400,9 @@ public class Vesting {
     }
 
     @External
-    public void setRewardManager(Address address) {
-        rewardManager.set(address);
+    public void setRewardManager(Address _address) {
+        _onlyOwner();
+        rewardManager.set(_address);
     }
 
     @External(readonly = true)

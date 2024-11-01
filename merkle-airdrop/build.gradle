@@ -20,6 +20,8 @@ dependencies {
     intTestImplementation project(':hsp20-token')
     intTestImplementation 'foundation.icon:javaee-integration-test:0.9.0'
     intTestImplementation 'foundation.icon:icon-sdk:2.4.0'
+    intTestImplementation 'org.bouncycastle:bcprov-jdk15on:1.70'  // 최신 버전 사용
+
 }
 
 optimizedJar {

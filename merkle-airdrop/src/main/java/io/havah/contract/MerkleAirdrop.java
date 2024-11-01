@@ -21,7 +21,6 @@ public class MerkleAirdrop {
     protected static final VarDB<Address> vestingContract = Context.newVarDB("vesting_contract", Address.class);
     protected static final VarDB<Airdrop> airdropDb = Context.newVarDB("airdrops", Airdrop.class);
     protected static final VarDB<Integer> vestingId = Context.newVarDB("vesting_id", Integer.class);
-    protected static final VarDB<Address> rewardToken = Context.newVarDB("reward_token", Address.class);
     protected static final DictDB<Address, Integer> selectedRewardOption = Context.newDictDB("selected_reward_option", Integer.class);
     protected static final BranchDB<Integer, DictDB<Address, Boolean>> claimed = Context.newBranchDB("claimed", Boolean.class);
     protected static final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
@@ -237,12 +236,12 @@ public class MerkleAirdrop {
 
     private void _handleRewardOption(Address claimer, int option, BigInteger amount) {
         RewardStatus rewardStatus;
+        Token token = new Token(getRewardToken());
         if (option == 1) { // instant claim
             BigInteger claimed = amount.divide(BigInteger.TWO);
-            Token token = new Token(rewardToken.get());
             token.transfer(claimer, claimed);
 
-            Address _treasury = treasury.get();
+            Address _treasury = getTreasury();
             BigInteger remained = amount.subtract(claimed);
             token.transfer(_treasury, remained);
 
@@ -250,27 +249,28 @@ public class MerkleAirdrop {
         } else { // vesting
             rewardStatus = new RewardStatus(amount, BigInteger.ZERO, BigInteger.ZERO);
             // set vesting
-            Vesting vesting = new Vesting(vestingContract.get());
+            Vesting vesting = new Vesting(getVestingContract());
             vesting.addVestingAccount(getVestingId(), claimer, amount);
+            token.transfer(getVestingContract(), amount);
         }
         rewardStatusDict.set(claimer, rewardStatus);
     }
 
     @External
-    public void selectRewardOption(int option, BigInteger amount, byte[][] proof) {
+    public void selectRewardOption(int _option, BigInteger _amount, byte[][] _proof) {
         Address caller = Context.getCaller();
         int selected = selectedRewardOption.getOrDefault(caller, REWARD_OPTION_DEFAULT);
         if (selected != REWARD_OPTION_DEFAULT) {
             Context.revert("already selected");
-        } else if ((option != REWARD_OPTION_INSTANT_CLAIM) && (option != REWARD_OPTION_VESTING)) {
+        } else if ((_option != REWARD_OPTION_INSTANT_CLAIM) && (_option != REWARD_OPTION_VESTING)) {
             Context.revert("Invalid option");
         }
 
         Airdrop _airdrop = airdropDb.get();
-        _require(_verifyProof(_airdrop.merkleRoot, caller, amount, proof), "Invalid proof");
+        _require(_verifyProof(_airdrop.merkleRoot, caller, _amount, _proof), "Invalid proof");
 
-        selectedRewardOption.set(caller, option);
-        _handleRewardOption(caller, option, amount);
+        selectedRewardOption.set(caller, _option);
+        _handleRewardOption(caller, _option, _amount);
     }
 
     @External(readonly = true)
@@ -284,7 +284,7 @@ public class MerkleAirdrop {
         int option = getSelectedRewardOption(caller);
         _require(option == REWARD_OPTION_VESTING, "not authorized");
 
-        Vesting vesting = new Vesting(vestingContract.get());
+        Vesting vesting = new Vesting(getVestingContract());
         BigInteger claimable = vesting.claimable(getVestingId(), caller);
         if (claimable.compareTo(BigInteger.ZERO) > 0) {
             vesting.claim(getVestingId(), caller);
@@ -296,25 +296,25 @@ public class MerkleAirdrop {
         }
     }
 
-    @External
-    public void setRewardToken(Address address) {
-        rewardToken.set(address);
-    }
-
     @External(readonly = true)
     public Address getRewardToken() {
-        return rewardToken.get();
+        return airdropDb.get().token;
     }
 
     @External
-    public void setVestingContract(Address contract) {
+    public void setVestingContract(Address _contract) {
         _onlyAdmin();
-        vestingContract.set(contract);
+        vestingContract.set(_contract);
     }
 
     @External(readonly = true)
     public Address getVestingContract() {
         return vestingContract.get();
+    }
+
+    @External(readonly = true)
+    public Address getTreasury() {
+        return treasury.get();
     }
 
     @External
@@ -335,9 +335,8 @@ public class MerkleAirdrop {
     }
 
     @External(readonly = true)
-    public Map getRewardStatus(Address address) {
-        // TODO: claimableAmount
-        int selection = selectedRewardOption.get(address);
+    public Map getRewardStatus(Address _address) {
+        int selection = selectedRewardOption.get(_address);
         if (selection == REWARD_OPTION_DEFAULT) {
             return Map.of(
                     "rewardOption", REWARD_OPTION_DEFAULT,
@@ -347,11 +346,11 @@ public class MerkleAirdrop {
             );
         }
 
-        RewardStatus status = rewardStatusDict.get(address);
+        RewardStatus status = rewardStatusDict.get(_address);
         BigInteger claimable = BigInteger.ZERO;
         if (selection == REWARD_OPTION_VESTING) {
-            Vesting vesting = new Vesting(vestingContract.get());
-            claimable = vesting.claimable(getVestingId(), address);
+            Vesting vesting = new Vesting(getVestingContract());
+            claimable = vesting.claimable(getVestingId(), _address);
         }
         return Map.of(
                 "rewardOption", selection,
