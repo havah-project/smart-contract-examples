@@ -27,12 +27,14 @@ public class Vesting {
     protected final DictDB<Integer, VestingSchedule> vestingSchedule = Context.newDictDB("vesting_schedule", VestingSchedule.class);
     protected final VarDB<Integer> vestingId = Context.newVarDB("vesting_id", Integer.class);
 
+    protected final VarDB<Address> rewardManager = Context.newVarDB("airdrop", Address.class);
+
     protected boolean _isCaller(Address address) {
         return Context.getCaller().equals(address);
     }
 
     protected void _require(boolean condition, String err) {
-        if(!condition)
+        if (!condition)
             Context.revert(err);
     }
 
@@ -42,7 +44,7 @@ public class Vesting {
 
     protected void _checkStartEndTime(VestingScheduleType type, long start, long end) {
         _require(start > Datetime.GENESIS_TIMESTAMP, "the start_time must be after 2024.01.01 00:00(UTC)");
-        if(type != VestingScheduleType.Onetime)
+        if (type != VestingScheduleType.Onetime)
             _require(start < end, "the start_time must be less than the end_time");
     }
 
@@ -142,9 +144,9 @@ public class Vesting {
         RegisteredYearlyVesting(id, _token, _startTime, _endTime, _month, _day, _hour);
     }
 
-    protected int _registerConditionalVesting(VestingScheduleType type, Address token, long startTime, long endTime, long timeInterval,
-                                               AccountInfo[] accounts, int month, int day,
-                                               int weekday, int hour) {
+    protected int _registerConditionalVesting(VestingScheduleType type, Address token, long startTime,
+                                              long endTime, long timeInterval, AccountInfo[] accounts,
+                                              int month, int day, int weekday, int hour) {
         _onlyOwner();
         _checkStartEndTime(type, startTime, endTime);
         _checkScheduleParams4Type(type, month, day, weekday, hour);
@@ -166,13 +168,13 @@ public class Vesting {
 
         List vestingTime = VestingScheduleType.calculateVestingTime(schedule);
         _checkVestingTimes(type, vestingTime);
-        for(int i=0; i<vestingTime.size(); i++) {
+        for (int i = 0; i < vestingTime.size(); i++) {
             vestingTimes.at(id).add((long) vestingTime.get(i));
         }
 
         BigInteger total = BigInteger.ZERO;
         int idx = accountInfoCount.getOrDefault(id, 0);
-        for(AccountInfo account : accounts) {
+        for (AccountInfo account : accounts) {
             _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
 
             BigInteger accountTotal = account.getTotalAmount();
@@ -192,9 +194,8 @@ public class Vesting {
     }
 
     @External
-    public void addVestingAccounts(int _id, AccountInfo[] _accounts) {
-        _onlyOwner();
-        _require(_accounts.length > 0, "no accounts");
+    public void addVestingAccount(int _id, Address _address, BigInteger _amount) {
+        _require(_isCaller(rewardManager.get()), "Only owner can call this method");
         VestingSchedule schedule = vestingSchedule.get(_id);
         _require(schedule != null, "vesting was not registered");
 
@@ -203,19 +204,14 @@ public class Vesting {
         //int size = vestingTimes.at(_id).size();
         int idx = accountInfoCount.getOrDefault(_id, 0);
 
-        for(AccountInfo account : _accounts) {
-            _require(accountInfo.at(_id).get(account.getAddress()) == null, "duplicated address");
+        _require(accountInfo.at(_id).get(_address) == null, "duplicated address");
 
-            BigInteger total = account.getTotalAmount();
-            sumAmount = sumAmount.add(total);
-            //account.setTotalAmount(total);
+        BigInteger total = _amount;
+        sumAmount = sumAmount.add(total);
 
-            Address address = account.getAddress();
-            accountInfo.at(_id).set(address, account);
-            idxAccountDict.at(_id).set(idx, address);
-            accountIdxDict.at(_id).set(address, idx);
-            idx++;
-        }
+        accountInfo.at(_id).set(_address, new AccountInfo(_address, _amount));
+        idxAccountDict.at(_id).set(idx, _address);
+        accountIdxDict.at(_id).set(_address, idx);
         accountInfoCount.set(_id, idx);
         totalAmount.set(_id, sumAmount);
     }
@@ -228,7 +224,7 @@ public class Vesting {
         _require(schedule != null, "vesting was not registered");
 
         int count = accountInfoCount.getOrDefault(_id, 0) - 1;
-        for(Address address : _accounts) {
+        for (Address address : _accounts) {
             AccountInfo info = accountInfo.at(_id).get(address);
             _require(info != null, "vesting entry is not found");
 
@@ -256,7 +252,7 @@ public class Vesting {
     }
 
     protected void _transfer(Address token, Address recipient, BigInteger amount) {
-        if(token.equals(ZERO_ADDRESS)) {
+        if (token.equals(ZERO_ADDRESS)) {
             Context.transfer(recipient, amount);
         } else {
             Context.call(token, "transfer", recipient, amount);
@@ -273,17 +269,17 @@ public class Vesting {
 
     protected BigInteger _vestedAmountFrom(VestingScheduleType style, long startTime, long endTime, ArrayDB<Long> vestingTime, long blockTime, AccountInfo info) {
         BigInteger total = info.getTotalAmount();
-        if(style == VestingScheduleType.Onetime) {
-            if(startTime <= blockTime) {
+        if (style == VestingScheduleType.Onetime) {
+            if (startTime <= blockTime) {
                 return total;
             }
             return BigInteger.ZERO;
         }
-        if(blockTime >= endTime) {
+        if (blockTime >= endTime) {
             return total;
         }
-        if(style == VestingScheduleType.Linear) {
-            if(blockTime < startTime) {
+        if (style == VestingScheduleType.Linear) {
+            if (blockTime < startTime) {
                 return BigInteger.ZERO;
             }
             return total.multiply(BigInteger.valueOf(blockTime).subtract(BigInteger.valueOf(startTime)))
@@ -295,8 +291,8 @@ public class Vesting {
 
     protected int _passedCountFrom(ArrayDB<Long> vestingTime, long blockTime) {
         int passed = 0;
-        for(int i=0; i<vestingTime.size(); i++) {
-            if(vestingTime.get(i) > blockTime)
+        for (int i = 0; i < vestingTime.size(); i++) {
+            if (vestingTime.get(i) > blockTime)
                 return passed;
             passed++;
         }
@@ -304,35 +300,35 @@ public class Vesting {
     }
 
     @External
-    public void claim(int _id) {
+    public void claim(int _id, Address claimer) {
+        _require(_isCaller(rewardManager.get()), "Only owner can call this method");
         VestingSchedule schedule = vestingSchedule.get(_id);
         _require(schedule != null, "vesting was not registered");
-        Address caller = Context.getCaller();
-        AccountInfo info = accountInfo.at(_id).get(caller);
+        AccountInfo info = accountInfo.at(_id).get(claimer);
         _require(info != null, "vesting entry is not found");
 
         Address token = schedule.token;
 
-        BigInteger claimed = accountClaimed.at(_id).getOrDefault(caller, BigInteger.ZERO);
+        BigInteger claimed = accountClaimed.at(_id).getOrDefault(claimer, BigInteger.ZERO);
         _require(info.getTotalAmount().compareTo(claimed) > 0, "no claimable amount");
 
         BigInteger vestedAmount = _vestedAmountFrom(schedule.type, schedule.startTime, schedule.endTime, vestingTimes.at(_id), Context.getBlockTimestamp(), info);
-        if(vestedAmount.compareTo(claimed) <= 0)
+        if (vestedAmount.compareTo(claimed) <= 0)
             return;
 
         BigInteger claimableAmount = vestedAmount.subtract(claimed);
-        accountClaimed.at(_id).set(caller, claimed.add(claimableAmount));
+        accountClaimed.at(_id).set(claimer, claimed.add(claimableAmount));
         totalClaimed.set(_id, totalClaimed.getOrDefault(_id, BigInteger.ZERO).add(claimableAmount));
-        _transfer(token, caller, claimableAmount);
+        _transfer(token, claimer, claimableAmount);
 
-        Claimed(token, caller, claimableAmount);
+        Claimed(token, claimer, claimableAmount);
     }
 
     @External(readonly = true)
     public List getAccounts(int _id) {
         List list = new ArrayList();
         int size = accountCount(_id);
-        for(int i=0; i<size; i++) {
+        for (int i = 0; i < size; i++) {
             list.add(idxAccountDict.at(_id).get(i));
         }
         return list;
@@ -341,7 +337,7 @@ public class Vesting {
     @External(readonly = true)
     public Map getAccountInfo(int _id, Address _address) {
         AccountInfo aInfo = accountInfo.at(_id).get(_address);
-        if(aInfo == null) return Map.of();
+        if (aInfo == null) return Map.of();
 
         VestingSchedule schedule = vestingSchedule.get(_id);
         BigInteger vested = _vestedAmountFrom(schedule.type, schedule.startTime, schedule.endTime, vestingTimes.at(_id), Context.getBlockTimestamp(), aInfo);
@@ -357,7 +353,7 @@ public class Vesting {
     @External(readonly = true)
     public Map info(int _id) {
         VestingSchedule schedule = vestingSchedule.get(_id);
-        if(schedule != null)
+        if (schedule != null)
             return Map.of(
                     "type", schedule.type.name(),
                     "startTime", schedule.startTime,
@@ -381,11 +377,11 @@ public class Vesting {
         _require(info != null, "vesting entry is not found");
 
         BigInteger claimed = accountClaimed.at(_id).getOrDefault(_address, BigInteger.ZERO);
-        if(info.getTotalAmount().compareTo(claimed) <= 0)
+        if (info.getTotalAmount().compareTo(claimed) <= 0)
             return BigInteger.ZERO;
 
         BigInteger vestedAmount = _vestedAmountFrom(schedule.type, schedule.startTime, schedule.endTime, vestingTimes.at(_id), Context.getBlockTimestamp(), info);
-        if(vestedAmount.compareTo(claimed) <= 0)
+        if (vestedAmount.compareTo(claimed) <= 0)
             return BigInteger.ZERO;
 
         return vestedAmount.subtract(claimed);
@@ -399,39 +395,59 @@ public class Vesting {
     @External(readonly = true)
     public List vestingTimes(int _id) {
         List list = new ArrayList();
-        for(int i=0; i<vestingTimes.at(_id).size(); i++) {
+        for (int i = 0; i < vestingTimes.at(_id).size(); i++) {
             list.add(vestingTimes.at(_id).get(i));
         }
         return list;
     }
 
-    @EventLog
-    public void Deposited(Address _sender,  BigInteger _amount) {}
+    @External
+    public void setRewardManager(Address address) {
+        rewardManager.set(address);
+    }
+
+    @External(readonly = true)
+    public Address getRewardManager() {
+        return rewardManager.get();
+    }
 
     @EventLog
-    public void Withdrawn(Address _token, Address _recipient, BigInteger _amount) {}
+    public void Deposited(Address _sender, BigInteger _amount) {
+    }
 
     @EventLog
-    public void Claimed(Address _token, Address _recipient, BigInteger _amount) {}
+    public void Withdrawn(Address _token, Address _recipient, BigInteger _amount) {
+    }
 
     @EventLog
-    public void RegisteredOnetimeVesting(int _id, Address _token, long _startTime) {}
+    public void Claimed(Address _token, Address _recipient, BigInteger _amount) {
+    }
 
     @EventLog
-    public void RegisteredLinearVesting(int _id, Address _token, long _startTime, long _endTime) {}
+    public void RegisteredOnetimeVesting(int _id, Address _token, long _startTime) {
+    }
 
     @EventLog
-    public void RegisteredPeriodicVesting(int _id, Address _token, long _startTime, long _endTime, long _timeInterval) {}
+    public void RegisteredLinearVesting(int _id, Address _token, long _startTime, long _endTime) {
+    }
 
     @EventLog
-    public void RegisteredDailyVesting(int _id, Address _token, long _startTime, long _endTime, int _hour) {}
+    public void RegisteredPeriodicVesting(int _id, Address _token, long _startTime, long _endTime, long _timeInterval) {
+    }
 
     @EventLog
-    public void RegisteredWeeklyVesting(int _id, Address _token, long _startTime, long _endTime, int _weekday, int _hour) {}
+    public void RegisteredDailyVesting(int _id, Address _token, long _startTime, long _endTime, int _hour) {
+    }
 
     @EventLog
-    public void RegisteredMonthlyVesting(int _id, Address _token, long _startTime, long _endTime, int _day, int _hour) {}
+    public void RegisteredWeeklyVesting(int _id, Address _token, long _startTime, long _endTime, int _weekday, int _hour) {
+    }
 
     @EventLog
-    public void RegisteredYearlyVesting(int _id, Address _token, long _startTime, long _endTime, int _month, int _day, int _hour) {}
+    public void RegisteredMonthlyVesting(int _id, Address _token, long _startTime, long _endTime, int _day, int _hour) {
+    }
+
+    @EventLog
+    public void RegisteredYearlyVesting(int _id, Address _token, long _startTime, long _endTime, int _month, int _day, int _hour) {
+    }
 }

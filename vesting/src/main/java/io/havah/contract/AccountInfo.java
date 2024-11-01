@@ -11,6 +11,16 @@ public class AccountInfo implements Serializable {
     private Address address;
     private BigInteger totalAmount;
 
+    // 없을 경우 컴파일 에러발생.
+    public AccountInfo() {
+
+    }
+
+    public AccountInfo(Address address, BigInteger amount) {
+        this.address = address;
+        this.totalAmount = amount;
+    }
+
     public Address getAddress() {
         return address;
     }
@@ -36,9 +46,7 @@ public class AccountInfo implements Serializable {
 
     public static AccountInfo readObject(ObjectReader r) {
         r.beginList();
-        AccountInfo a = new AccountInfo();
-        a.setAddress(r.readAddress());
-        a.setTotalAmount(r.readBigInteger());
+        AccountInfo a = new AccountInfo(r.readAddress(), r.readBigInteger());
         r.end();
         return a;
     }

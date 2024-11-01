@@ -88,9 +88,7 @@ public enum VestingScheduleType {
                 long[] info = Datetime.getMonthlyInfo(schedule.startTime);
                 long year = info[0];
                 long month = info[1];
-                long monthTime = info[2];
-
-                info = Datetime.getMonthlyInfo(schedule.endTime);
+                long monthTime = info[2]; info = Datetime.getMonthlyInfo(schedule.endTime);
                 long endYear = info[0];
                 long endMonth = info[1];
                 while (true) {

@@ -8,7 +8,6 @@ import score.annotation.Optional;
 import java.math.BigInteger;
 
 public class Airdrop {
-    int id;
     Address token;
     byte[] merkleRoot;
     long startTime;
@@ -17,8 +16,7 @@ public class Airdrop {
 
     private Airdrop() {}
 
-    public Airdrop(int id, Address token, byte[] merkleRoot, long startTime, @Optional long endTime, @Optional BigInteger totalAmount) {
-        this.id = id;
+    public Airdrop(Address token, byte[] merkleRoot, long startTime, @Optional long endTime, @Optional BigInteger totalAmount) {
         this.token = token;
         this.merkleRoot = merkleRoot;
         this.startTime = startTime;
@@ -28,7 +26,6 @@ public class Airdrop {
 
     public static void writeObject(ObjectWriter w, Airdrop s) {
         w.beginList(6);
-        w.write(s.id);
         w.write(s.token);
         w.write(s.merkleRoot);
         w.write(s.startTime);
@@ -40,7 +37,6 @@ public class Airdrop {
     public static Airdrop readObject(ObjectReader r) {
         r.beginList();
         Airdrop s = new Airdrop(
-                r.readInt(),
                 r.readAddress(),
                 r.readByteArray(),
                 r.readLong(),
