@@ -9,6 +9,8 @@ import score.annotation.Payable;
 import java.math.BigInteger;
 import java.util.Map;
 
+import static io.havah.contract.Errors.*;
+
 public class MerkleAirdrop {
     private static final int REWARD_OPTION_DEFAULT = 0;
     private static final int REWARD_OPTION_INSTANT_CLAIM = 1;
@@ -23,16 +25,16 @@ public class MerkleAirdrop {
     protected static final VarDB<Integer> vestingId = Context.newVarDB("vesting_id", Integer.class);
     protected static final DictDB<Address, Integer> selectedRewardOption = Context.newDictDB("selected_reward_option", Integer.class);
     protected static final BranchDB<Integer, DictDB<Address, Boolean>> claimed = Context.newBranchDB("claimed", Boolean.class);
-    protected static final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
+    protected static final VarDB<BigInteger> totalClaimed = Context.newVarDB("total_claimed", BigInteger.class);
     protected static final DictDB<Address, RewardStatus> rewardStatusDict = Context.newDictDB("reward_status", RewardStatus.class);
 
     protected boolean _isCaller(Address address) {
         return Context.getCaller().equals(address);
     }
 
-    protected void _require(boolean condition, String err) {
+    protected void _require(boolean condition, Errors error) {
         if (!condition) {
-            Context.revert(err);
+            Context.revert(error.ordinal(), error.getMessage());
         }
     }
 
@@ -53,27 +55,27 @@ public class MerkleAirdrop {
     }
 
     protected void _onlyAdmin() {
-        _require(_isCaller(admin()), "Only administrator can call this method");
+        _require(_isCaller(admin()), ERR_NOT_ADMIN);
     }
 
     protected void _checkContract(Address address) {
-        _require(address.equals(ZERO_ADDRESS) || address.isContract(), "Not contract address");
+        _require(address.equals(ZERO_ADDRESS) || address.isContract(), ERR_NOT_CONTRACT_ADDRESS);
     }
 
     protected void _checkNotEmpty(byte[] hash) {
-        _require(hash != null && hash.length > 0, "Empty hash");
+        _require(hash != null && hash.length > 0, ERR_EMPTY_HASH);
     }
 
     protected void _checkTime(long start, long end) {
-        _require(end == 0 || end > start, "Invalid time");
+        _require(end == 0 || end > start, ERR_INVALID_TIME);
     }
 
     protected void _checkAmount(BigInteger amount) {
-        _require(amount == null || amount.signum() > 0, "Invalid amount");
+        _require(amount == null || amount.signum() > 0, ERR_INVALID_AMOUNT);
     }
 
     protected void _checkNotStarted(Airdrop airdrop) {
-        _require(Context.getBlockTimestamp() < airdrop.startTime, "Already started airdrop");
+        _require(Context.getBlockTimestamp() < airdrop.getStartTime(), ERR_ALREADY_STARTED);
     }
 
     protected boolean _verifyProof(byte[] merkleRoot, Address caller, BigInteger amount, byte[][] proof) {
@@ -142,14 +144,15 @@ public class MerkleAirdrop {
     }
 
     @External
-    public void setAirdrop(Address _token, byte[] _merkleRoot, long _startTime, @Optional long _endTime, @Optional BigInteger _totalAmount) {
+    public void setAirdrop(Address _token, byte[] _merkleRoot, long _startTime,
+                           @Optional long _endTime, @Optional BigInteger _totalAmount) {
         _onlyAdmin();
         _checkContract(_token);
         _checkNotEmpty(_merkleRoot);
         _checkTime(_startTime, _endTime);
         _checkAmount(_totalAmount);
 
-        airdropDb.set(new Airdrop( _token, _merkleRoot, _startTime, _endTime, _totalAmount));
+        airdropDb.set(new Airdrop(_token, _merkleRoot, _startTime, _endTime, _totalAmount));
         AirdropSet(_token, _merkleRoot, _startTime, _endTime, _getSafeString(_totalAmount));
     }
 
@@ -162,9 +165,9 @@ public class MerkleAirdrop {
         Airdrop airdrop = airdropDb.get();
         _checkNotStarted(airdrop);
 
-        airdrop.startTime = _startTime;
-        airdrop.endTime = _endTime;
-        airdrop.totalAmount = _totalAmount;
+        airdrop.setStartTime(_startTime);
+        airdrop.setEndTime(_endTime);
+        airdrop.setTotalAmount(_totalAmount);
 
         airdropDb.set(airdrop);
         AirdropUpdated(_startTime, _endTime, _getSafeString(_totalAmount));
@@ -179,10 +182,10 @@ public class MerkleAirdrop {
     }
 
     @External(readonly = true)
-    public byte[] merkleRoot(int _id) {
+    public byte[] merkleRoot() {
         Airdrop airdrop = airdropDb.get();
         if (airdrop != null) {
-            return airdrop.merkleRoot;
+            return airdrop.getMerkleRoot();
         }
         return null;
     }
@@ -191,14 +194,16 @@ public class MerkleAirdrop {
     public Map info(int _id) {
         Airdrop airdrop = airdropDb.get();
         if (airdrop != null) {
+            BigInteger total = airdrop.getTotalAmount();
+            BigInteger claimed = totalClaimed.getOrDefault(BigInteger.ZERO);
+            BigInteger remained = total == null ? null : total.subtract(claimed);
             return Map.of(
-                    "id", _id,
-                    "token", airdrop.token,
-                    "start", airdrop.startTime,
-                    "end", airdrop.endTime,
-                    "total", airdrop.totalAmount,
-                    "claimed", totalClaimed.getOrDefault(_id, BigInteger.ZERO),
-                    "remain", airdrop.totalAmount != null ? airdrop.totalAmount.subtract(totalClaimed.getOrDefault(_id, BigInteger.ZERO)) : BigInteger.ZERO
+                    "token", airdrop.getToken(),
+                    "start", airdrop.getStartTime(),
+                    "end", airdrop.getEndTime(),
+                    "total", total,
+                    "claimed", claimed,
+                    "remain", remained
             );
         }
         return Map.of();
@@ -259,17 +264,21 @@ public class MerkleAirdrop {
     @External
     public void selectRewardOption(int _option, BigInteger _amount, byte[][] _proof) {
         Address caller = Context.getCaller();
+        boolean isValidAmount = _amount != null && _amount.signum() > 0;
+        Context.require(isValidAmount);
         int selected = selectedRewardOption.getOrDefault(caller, REWARD_OPTION_DEFAULT);
-        if (selected != REWARD_OPTION_DEFAULT) {
-            Context.revert("already selected");
-        } else if ((_option != REWARD_OPTION_INSTANT_CLAIM) && (_option != REWARD_OPTION_VESTING)) {
-            Context.revert("Invalid option");
-        }
+        _require(selected == REWARD_OPTION_DEFAULT, ERR_ALREADY_OPTION_SELECTED);
+
+        boolean isValidOption = (_option == REWARD_OPTION_INSTANT_CLAIM) || (_option == REWARD_OPTION_VESTING);
+        _require(isValidOption, ERR_NOT_A_VALID_OPTION);
 
         Airdrop _airdrop = airdropDb.get();
-        _require(_verifyProof(_airdrop.merkleRoot, caller, _amount, _proof), "Invalid proof");
+        boolean isValidProof = _verifyProof(_airdrop.getMerkleRoot(), caller, _amount, _proof);
+        _require(isValidProof, ERR_INVALID_PROOF);
 
         selectedRewardOption.set(caller, _option);
+        BigInteger claimed = totalClaimed.getOrDefault(BigInteger.ZERO);
+        totalClaimed.set(claimed.add(_amount));
         _handleRewardOption(caller, _option, _amount);
     }
 
@@ -282,7 +291,7 @@ public class MerkleAirdrop {
     public void claimScheduledReward() {
         Address caller = Context.getCaller();
         int option = getSelectedRewardOption(caller);
-        _require(option == REWARD_OPTION_VESTING, "not authorized");
+        _require(option == REWARD_OPTION_VESTING, ERR_NOT_SELECT_VESTING_OPTION);
 
         Vesting vesting = new Vesting(getVestingContract());
         BigInteger claimable = vesting.claimable(getVestingId(), caller);
@@ -298,7 +307,7 @@ public class MerkleAirdrop {
 
     @External(readonly = true)
     public Address getRewardToken() {
-        return airdropDb.get().token;
+        return airdropDb.get().getToken();
     }
 
     @External

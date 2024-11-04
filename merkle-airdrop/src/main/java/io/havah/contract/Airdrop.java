@@ -8,19 +8,61 @@ import score.annotation.Optional;
 import java.math.BigInteger;
 
 public class Airdrop {
-    Address token;
-    byte[] merkleRoot;
-    long startTime;
-    long endTime;
-    BigInteger totalAmount;
+    private Address token;
+    private byte[] merkleRoot;
+    private long startTime;
+    private long endTime;
+    private BigInteger totalAmount;
 
-    private Airdrop() {}
+    private Airdrop() {
+    }
 
-    public Airdrop(Address token, byte[] merkleRoot, long startTime, @Optional long endTime, @Optional BigInteger totalAmount) {
+    public Airdrop(Address token, byte[] merkleRoot, long startTime,
+                   @Optional long endTime, @Optional BigInteger totalAmount) {
         this.token = token;
         this.merkleRoot = merkleRoot;
         this.startTime = startTime;
         this.endTime = endTime;
+        this.totalAmount = totalAmount;
+    }
+
+    public Address getToken() {
+        return token;
+    }
+
+    public void setToken(Address token) {
+        this.token = token;
+    }
+
+    public byte[] getMerkleRoot() {
+        return merkleRoot;
+    }
+
+    public void setMerkleRoot(byte[] merkleRoot) {
+        this.merkleRoot = merkleRoot;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public BigInteger getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(BigInteger totalAmount) {
         this.totalAmount = totalAmount;
     }
 
