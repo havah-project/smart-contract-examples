@@ -11,10 +11,13 @@ import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
+import static io.havah.contract.Errors.*;
+
 public class Vesting {
     static final Address ZERO_ADDRESS = Address.fromString("hx0000000000000000000000000000000000000000");
 
     protected static final VarDB<String> name = Context.newVarDB("name", String.class);
+    protected static final VarDB<Address> admin = Context.newVarDB("admin", Address.class);
     protected final DictDB<Integer, BigInteger> totalClaimed = Context.newDictDB("total_claimed", BigInteger.class);
     protected final BranchDB<Integer, ArrayDB<Long>> vestingTimes = Context.newBranchDB("vesting_times", Long.class);
     protected final DictDB<Integer, BigInteger> totalAmount = Context.newDictDB("total_amount", BigInteger.class);
@@ -33,19 +36,35 @@ public class Vesting {
         return Context.getCaller().equals(address);
     }
 
-    protected void _require(boolean condition, String err) {
-        if (!condition)
-            Context.revert(err);
+    protected void _require(boolean condition, Errors error) {
+        if (!condition) {
+            Context.revert(error.ordinal(), error.getMessage());
+        }
     }
 
-    protected void _onlyOwner() {
-        _require(_isCaller(Context.getOwner()), "Only owner can call this method");
+    protected void _onlyAdmin() {
+        _require(_isCaller(admin()), ERR_NOT_ADMIN);
+    }
+
+    @External
+    public void setAdmin(Address _admin) {
+        _onlyAdmin();
+        admin.set(_admin);
+    }
+
+    @External(readonly = true)
+    public Address admin() {
+        return admin.getOrDefault(Context.getOwner());
+    }
+
+    protected void _onlyRewardManager() {
+        _require(_isCaller(rewardManager.get()), ERR_NOT_REWARD_MANAGER);
     }
 
     protected void _checkStartEndTime(VestingScheduleType type, long start, long end) {
-        _require(start > Datetime.GENESIS_TIMESTAMP, "the start_time must be after 2024.01.01 00:00(UTC)");
+        _require(start > Datetime.GENESIS_TIMESTAMP, ERR_INVALID_START_TIME);
         if (type != VestingScheduleType.Onetime)
-            _require(start < end, "the start_time must be less than the end_time");
+            _require(start < end, ERR_INVALID_TIME);
     }
 
     protected void _checkScheduleParams4Type(VestingScheduleType type, @Optional int month, @Optional int day,
@@ -55,16 +74,16 @@ public class Vesting {
             case Weekly:
             case Monthly:
             case Yearly:
-                _require(hour > -1 && hour < 24, "invalid hour");
+                _require(hour > -1 && hour < 24, ERR_INVALID_HOUR);
         }
         switch (type) {
             case Weekly:
-                _require(weekday > -1 && weekday < 7, "invalid weekday");
+                _require(weekday > -1 && weekday < 7, ERR_INVALID_WEEKDAY);
                 break;
             case Yearly:
-                _require(month > -1 && month < 13, "invalid month");
+                _require(month > -1 && month < 13, ERR_INVALID_MONTH);
             case Monthly:
-                _require(day > -1 && day < 32, "invalid day");
+                _require(day > -1 && day < 32, ERR_INVALID_DAY);
         }
     }
 
@@ -74,13 +93,19 @@ public class Vesting {
             case Weekly:
             case Monthly:
             case Yearly:
-                _require(vestingTimes.size() > 0, "empty vesting times");
+                _require(vestingTimes.size() > 0, ERR_EMPTY_VESTING_TIMES);
         }
     }
 
     public Vesting(String _name) {
         name.set(_name);
     }
+
+    @External(readonly = true)
+    public String name() {
+        return name.get();
+    }
+
 
     @Payable
     public void fallback() {
@@ -147,7 +172,7 @@ public class Vesting {
     protected int _registerConditionalVesting(VestingScheduleType type, Address token, long startTime,
                                               long endTime, long timeInterval, AccountInfo[] accounts,
                                               int month, int day, int weekday, int hour) {
-        _onlyOwner();
+        _onlyAdmin();
         _checkStartEndTime(type, startTime, endTime);
         _checkScheduleParams4Type(type, month, day, weekday, hour);
 
@@ -175,7 +200,7 @@ public class Vesting {
         BigInteger total = BigInteger.ZERO;
         int idx = accountInfoCount.getOrDefault(id, 0);
         for (AccountInfo account : accounts) {
-            _require(accountInfo.at(id).get(account.getAddress()) == null, "duplicated address");
+            _require(accountInfo.at(id).get(account.getAddress()) == null, ERR_DUPLICATED_ADDRESS);
 
             BigInteger accountTotal = account.getTotalAmount();
             total = total.add(accountTotal);
@@ -195,14 +220,14 @@ public class Vesting {
 
     @External
     public void addVestingAccount(int _id, Address _address, BigInteger _amount) {
-        _require(_isCaller(rewardManager.get()), "Only reward manager can call this method");
+        _onlyRewardManager();
         VestingSchedule schedule = vestingSchedule.get(_id);
-        _require(schedule != null, "vesting was not registered");
+        _require(schedule != null, ERR_VESTING_NOT_REGISTERED);
 
         BigInteger sumAmount = totalAmount.get(_id);
         int idx = accountInfoCount.getOrDefault(_id, 0);
 
-        _require(accountInfo.at(_id).get(_address) == null, "duplicated address");
+        _require(accountInfo.at(_id).get(_address) == null, ERR_DUPLICATED_ADDRESS);
 
         BigInteger total = _amount;
         sumAmount = sumAmount.add(total);
@@ -210,21 +235,22 @@ public class Vesting {
         accountInfo.at(_id).set(_address, new AccountInfo(_address, _amount));
         idxAccountDict.at(_id).set(idx, _address);
         accountIdxDict.at(_id).set(_address, idx);
-        accountInfoCount.set(_id, idx);
+        accountInfoCount.set(_id, idx + 1);
         totalAmount.set(_id, sumAmount);
     }
 
     @External
     public void removeVestingAccounts(int _id, Address[] _accounts) {
-        _onlyOwner();
-        _require(_accounts.length > 0, "no accounts");
+        _onlyAdmin();
+        _require(_accounts.length > 0, ERR_NO_ACCOUNTS);
         VestingSchedule schedule = vestingSchedule.get(_id);
-        _require(schedule != null, "vesting was not registered");
+        _require(schedule != null, ERR_VESTING_NOT_REGISTERED);
 
-        int count = accountInfoCount.getOrDefault(_id, 0) - 1;
+        int count = accountInfoCount.getOrDefault(_id, 0);
         for (Address address : _accounts) {
+            count--;
             AccountInfo info = accountInfo.at(_id).get(address);
-            _require(info != null, "vesting entry is not found");
+            _require(info != null, ERR_VESTING_ENTRY_NOT_FOUND);
 
             BigInteger claimedAmount = accountClaimed.at(_id).getOrDefault(address, BigInteger.ZERO);
             BigInteger total = totalAmount.get(_id);
@@ -243,8 +269,6 @@ public class Vesting {
             idxAccountDict.at(_id).set(idx, last);
             accountIdxDict.at(_id).set(address, null);
             idxAccountDict.at(_id).set(count, null);
-
-            count--;
         }
         accountInfoCount.set(_id, count);
     }
@@ -259,7 +283,7 @@ public class Vesting {
 
     @External
     public void withdraw(Address _token, BigInteger _amount, @Optional Address _recipient) {
-        _onlyOwner();
+        _onlyAdmin();
         Address recipient = _recipient != null ? _recipient : Context.getCaller();
         _transfer(_token, recipient, _amount);
         Withdrawn(_token, recipient, _amount);
@@ -298,28 +322,28 @@ public class Vesting {
     }
 
     @External
-    public void claim(int _id, Address claimer) {
-        _require(_isCaller(rewardManager.get()), "Only reward manager can call this method");
+    public void claim(int _id, Address _claimer) {
+        _onlyRewardManager();
         VestingSchedule schedule = vestingSchedule.get(_id);
-        _require(schedule != null, "vesting was not registered");
-        AccountInfo info = accountInfo.at(_id).get(claimer);
-        _require(info != null, "vesting entry is not found");
+        _require(schedule != null, ERR_VESTING_NOT_REGISTERED);
+        AccountInfo info = accountInfo.at(_id).get(_claimer);
+        _require(info != null, ERR_VESTING_ENTRY_NOT_FOUND);
 
         Address token = schedule.token;
 
-        BigInteger claimed = accountClaimed.at(_id).getOrDefault(claimer, BigInteger.ZERO);
-        _require(info.getTotalAmount().compareTo(claimed) > 0, "no claimable amount");
+        BigInteger claimed = accountClaimed.at(_id).getOrDefault(_claimer, BigInteger.ZERO);
+        _require(info.getTotalAmount().compareTo(claimed) > 0, ERR_NO_CLAIMABLE_AMOUNT);
 
         BigInteger vestedAmount = _vestedAmountFrom(schedule.type, schedule.startTime, schedule.endTime, vestingTimes.at(_id), Context.getBlockTimestamp(), info);
         if (vestedAmount.compareTo(claimed) <= 0)
             return;
 
         BigInteger claimableAmount = vestedAmount.subtract(claimed);
-        accountClaimed.at(_id).set(claimer, claimed.add(claimableAmount));
+        accountClaimed.at(_id).set(_claimer, claimed.add(claimableAmount));
         totalClaimed.set(_id, totalClaimed.getOrDefault(_id, BigInteger.ZERO).add(claimableAmount));
-        _transfer(token, claimer, claimableAmount);
+        _transfer(token, _claimer, claimableAmount);
 
-        Claimed(token, claimer, claimableAmount);
+        Claimed(token, _claimer, claimableAmount);
     }
 
     @External(readonly = true)
@@ -370,9 +394,9 @@ public class Vesting {
     @External(readonly = true)
     public BigInteger claimableAmount(int _id, Address _address) {
         VestingSchedule schedule = vestingSchedule.get(_id);
-        _require(schedule != null, "vesting was not registered");
+        _require(schedule != null, ERR_VESTING_NOT_REGISTERED);
         AccountInfo info = accountInfo.at(_id).get(_address);
-        _require(info != null, "vesting entry is not found");
+        _require(info != null, ERR_VESTING_ENTRY_NOT_FOUND);
 
         BigInteger claimed = accountClaimed.at(_id).getOrDefault(_address, BigInteger.ZERO);
         if (info.getTotalAmount().compareTo(claimed) <= 0)
@@ -401,7 +425,7 @@ public class Vesting {
 
     @External
     public void setRewardManager(Address _address) {
-        _onlyOwner();
+        _onlyAdmin();
         rewardManager.set(_address);
     }
 
