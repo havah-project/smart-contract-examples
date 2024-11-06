@@ -345,7 +345,7 @@ public class MerkleAirdrop {
 
     @External(readonly = true)
     public Map getRewardStatus(Address _address) {
-        int selection = selectedRewardOption.get(_address);
+        int selection = selectedRewardOption.getOrDefault(_address, REWARD_OPTION_DEFAULT);
         if (selection == REWARD_OPTION_DEFAULT) {
             return Map.of(
                     "rewardOption", REWARD_OPTION_DEFAULT,
