@@ -252,7 +252,7 @@ public class MerkleAirdrop {
 
             rewardStatus = new RewardStatus(claimed, claimed, BigInteger.ZERO);
         } else { // vesting
-            rewardStatus = new RewardStatus(amount, BigInteger.ZERO, BigInteger.ZERO);
+            rewardStatus = new RewardStatus(amount, BigInteger.ZERO, amount);
             // set vesting
             Vesting vesting = new Vesting(getVestingContract());
             vesting.addVestingAccount(getVestingId(), claimer, amount);
@@ -351,6 +351,7 @@ public class MerkleAirdrop {
                     "rewardOption", REWARD_OPTION_DEFAULT,
                     "total", -1,
                     "claimable", -1,
+                    "claimed", -1,
                     "remained", -1
             );
         }
@@ -365,6 +366,7 @@ public class MerkleAirdrop {
                 "rewardOption", selection,
                 "total", status.total,
                 "claimable", claimable,
+                "claimed", status.claimed,
                 "remained", status.remained
         );
     }
