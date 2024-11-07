@@ -239,10 +239,19 @@ public class MerkleAirdrop {
     public void Withdrawn(Address _token, Address _recipient, BigInteger _amount) {
     }
 
+    @EventLog
+    public void Claimed(Address _owner, BigInteger _amount, BigInteger _option) {
+    }
+
+    @EventLog
+    public void VestingContractSet(Address _contract) {
+    }
+
+    // option is only REWARD_OPTION_INSTANT_CLAIM or REWARD_OPTION_VESTING
     private void _handleRewardOption(Address claimer, int option, BigInteger amount) {
         RewardStatus rewardStatus;
         Token token = new Token(getRewardToken());
-        if (option == 1) { // instant claim
+        if (option == REWARD_OPTION_INSTANT_CLAIM) {
             BigInteger claimed = amount.divide(BigInteger.TWO);
             token.transfer(claimer, claimed);
 
@@ -280,6 +289,7 @@ public class MerkleAirdrop {
         BigInteger claimed = totalClaimed.getOrDefault(BigInteger.ZERO);
         totalClaimed.set(claimed.add(_amount));
         _handleRewardOption(caller, _option, _amount);
+        Claimed(caller, _amount, BigInteger.valueOf(_option));
     }
 
     @External(readonly = true)
@@ -314,6 +324,7 @@ public class MerkleAirdrop {
     public void setVestingContract(Address _contract) {
         _onlyAdmin();
         vestingContract.set(_contract);
+        VestingContractSet(_contract);
     }
 
     @External(readonly = true)
